@@ -1,9 +1,12 @@
+<div align="center">
 # 🏠 Darna - Plateforme Immobilière Intelligente
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-4.x-blue.svg)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.x-green.svg)](https://www.mongodb.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Docker](https://img.shields.io/badge/Docker-3.x-blue.svg)](https://www.docker.com/)
+</div>
 
 ## 📋 Description
 
@@ -83,17 +86,10 @@ docker-compose up -d
 ## 🧪 Tests
 
 ```bash
-# Tests unitaires
-npm test
-
-# Tests en mode watch
-npm run test:watch
-
-# Tests avec couverture
-npm run test:coverage
-
-# Tests d'intégration
-npm run test:integration
+npm test                  # Tests unitaires
+npm run test:watch        # Tests en mode watch
+npm run test:coverage     # Tests avec couverture
+npm run test:integration  # Tests d'intégration
 ```
 
 ## 📚 Documentation
@@ -159,7 +155,7 @@ NODE_ENV=development
 ## 👥 Équipe
 
 - **Yassir Zbida** - Développeur Principal
-- [Autres membres de l'équipe]
+- **Abderrahmane Ahlallay** - Collaborateur
 
 ## 🤝 Contribution
 
@@ -171,20 +167,9 @@ Les contributions sont les bienvenues ! Pour contribuer :
 4. Push vers la branche (`git push origin feature/AmazingFeature`)
 5. Ouvrir une Pull Request
 
-## 📄 License
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
-## 📞 Support
-
-Pour toute question ou support :
-- 📧 Email : support@darna.com
-- 🐛 Issues : [GitHub Issues](https://github.com/Yassir-Zbida/Darna-Api/issues)
-- 📖 Documentation : [Wiki](https://github.com/Yassir-Zbida/Darna-Api/wiki)
-
 ---
 
 <div align="center">
   <p>Fait avec ❤️ par l'équipe Darna</p>
-  <p>© 2024 Darna. Tous droits réservés.</p>
+  <p>Darna © 2025 Tous droits réservés.</p>
 </div>
