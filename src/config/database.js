@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
+const indexConfig = require('./indexes');
 
 /**
  * Configuration de la base de données MongoDB
@@ -38,11 +39,28 @@ class DatabaseConfig {
       // Gestion des événements de connexion
       this.setupEventHandlers();
 
+      // Configuration des index de base
+      await this.initializeIndexes();
+
       return this.connection;
     } catch (error) {
       this.isConnected = false;
       logger.error('❌ Erreur lors de la connexion à MongoDB:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Initialise les index de base
+   */
+  async initializeIndexes() {
+    try {
+      await indexConfig.createAllIndexes();
+      logger.info('📋 Index de base configurés avec succès');
+    } catch (error) {
+      logger.error('❌ Erreur lors de la configuration des index:', error);
+      // Ne pas faire échouer la connexion pour les index
+      logger.warn('⚠️  Connexion établie mais index non configurés');
     }
   }
 
