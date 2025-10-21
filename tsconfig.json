@@ -14,7 +14,7 @@
     "outDir": "./dist",
     "rootDir": "./",
     "removeComments": false,
-    "importHelpers": true,
+    "importHelpers": false,
     "downlevelIteration": true,
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,

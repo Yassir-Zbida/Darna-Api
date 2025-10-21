@@ -2,13 +2,13 @@
   "name": "darna-api",
   "version": "1.0.0",
   "description": "Darna - Plateforme intelligente d'annonces, de chat et d'estimation immobilière",
-  "main": "dist/app.js",
+  "main": "dist/src/app.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
   "scripts": {
-    "start": "node dist/app.js",
+    "start": "node dist/src/app.js",
     "dev": "ts-node src/app.ts",
     "dev:watch": "nodemon --exec ts-node src/app.ts",
     "dev:debug": "nodemon --exec ts-node --inspect src/app.ts",
