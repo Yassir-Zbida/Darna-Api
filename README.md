@@ -5,6 +5,14 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.x-green.svg)](https://www.mongodb.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## 🔧 Outils de Qualité de Code
+
+[![ESLint](https://img.shields.io/badge/ESLint-9.x-4B32C3.svg)](https://eslint.org/)
+[![Prettier](https://img.shields.io/badge/Prettier-3.x-F7B93E.svg)](https://prettier.io/)
+[![Husky](https://img.shields.io/badge/Husky-9.x-42B883.svg)](https://typicode.github.io/husky/)
+[![lint-staged](https://img.shields.io/badge/lint--staged-16.x-00D4AA.svg)](https://github.com/okonet/lint-staged)
+[![EditorConfig](https://img.shields.io/badge/EditorConfig-✓-blue.svg)](https://editorconfig.org/)
+
 ## 📋 Description
 
 **Darna** est une plateforme immobilière complète qui révolutionne la gestion des annonces immobilières. Notre système intègre des fonctionnalités avancées pour offrir une expérience utilisateur optimale et des outils puissants pour les professionnels de l'immobilier.
@@ -22,6 +30,7 @@
 ## 🚀 Technologies
 
 ### Backend
+
 - **Node.js 18+** - Runtime JavaScript
 - **Express.js** - Framework web
 - **MongoDB + Mongoose** - Base de données NoSQL
@@ -31,15 +40,25 @@
 - **MinIO** - Stockage d'objets
 
 ### DevOps & Testing
+
 - **Docker** - Containerisation
 - **Jest** - Framework de tests
 - **ESLint** - Linting du code
 - **Prettier** - Formatage du code
 
+### 🔧 Outils de Qualité de Code
+
+- **ESLint** - Analyse statique du code TypeScript/JavaScript
+- **Prettier** - Formatage automatique du code
+- **Husky** - Git hooks pour la qualité du code
+- **lint-staged** - Exécution des outils de qualité sur les fichiers stagés
+- **EditorConfig** - Configuration uniforme des éditeurs
+
 ## 📦 Installation
 
 ### Prérequis
-- Node.js 18+ 
+
+- Node.js 18+
 - MongoDB 6+
 - Docker (optionnel)
 - Git
@@ -224,7 +243,7 @@ docker-compose ps
 
 # Les services doivent afficher "healthy" pour :
 # - mongodb
-# - redis  
+# - redis
 # - minio
 # - api
 ```
@@ -245,6 +264,7 @@ docker-compose --profile production up -d
 #### Problèmes Courants
 
 1. **Port déjà utilisé** :
+
    ```bash
    # Vérifier les ports utilisés
    lsof -i :3000
@@ -252,10 +272,11 @@ docker-compose --profile production up -d
    ```
 
 2. **Services non démarrés** :
+
    ```bash
    # Vérifier les logs
    docker-compose logs
-   
+
    # Redémarrer les services
    docker-compose restart
    ```
@@ -321,17 +342,20 @@ npm run format     # Formater le code
 ## 🌐 API Endpoints
 
 ### Authentification
+
 - `POST /api/auth/register` - Inscription
 - `POST /api/auth/login` - Connexion
 - `POST /api/auth/refresh` - Rafraîchir le token
 
 ### Annonces
+
 - `GET /api/announcements` - Liste des annonces
 - `POST /api/announcements` - Créer une annonce
 - `GET /api/announcements/:id` - Détails d'une annonce
 - `PUT /api/announcements/:id` - Modifier une annonce
 
 ### Chat
+
 - `GET /api/chat/rooms` - Liste des conversations
 - `POST /api/chat/messages` - Envoyer un message
 
@@ -381,6 +405,7 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 ## 📞 Support
 
 Pour toute question ou support :
+
 - 📧 Email : support@darna.com
 - 🐛 Issues : [GitHub Issues](https://github.com/Yassir-Zbida/Darna-Api/issues)
 - 📖 Documentation : [Wiki](https://github.com/Yassir-Zbida/Darna-Api/wiki)
