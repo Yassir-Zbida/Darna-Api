@@ -208,10 +208,10 @@ class StorageService {
       return new Promise((resolve, reject) => {
         stream.on('data', (obj) => {
           files.push({
-            name: obj.name,
-            size: obj.size,
-            lastModified: obj.lastModified,
-            etag: obj.etag
+            name: obj.name || '',
+            size: obj.size || 0,
+            lastModified: obj.lastModified || new Date(),
+            etag: obj.etag || ''
           });
         });
 
@@ -265,7 +265,7 @@ class StorageService {
       await this.client.copyObject(
         this.bucketName,
         destObjectName,
-        copyConditions
+        copyConditions as any
       );
 
       logger.info(`✅ Fichier copié: ${sourceObjectName} -> ${destObjectName}`);
