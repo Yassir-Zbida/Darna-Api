@@ -2,8 +2,8 @@
  * Tests d'intégration pour la configuration des index MongoDB
  */
 
-const indexConfig = require('../../src/config/indexes');
-const databaseConfig = require('../../src/config/database');
+const indexConfig = require('../../dist/src/config/indexes').default;
+const databaseConfig = require('../../dist/src/config/database').default;
 
 describe('Index Configuration Integration Tests', () => {
   beforeAll(async () => {

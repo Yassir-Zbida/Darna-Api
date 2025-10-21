@@ -1,31 +1,25 @@
-const mongoose = require('mongoose');
-const logger = require('../utils/logger');
-const indexConfig = require('./indexes');
+import mongoose from 'mongoose';
+import logger from '../utils/logger';
+import indexConfig from './indexes';
 
 /**
  * Configuration de la base de données MongoDB
  */
 class DatabaseConfig {
-  constructor() {
-    this.connection = null;
-    this.isConnected = false;
-  }
+  private connection: typeof mongoose | null = null;
+  private isConnected: boolean = false;
 
   /**
    * Établit la connexion à MongoDB
-   * @param {string} uri - URI de connexion MongoDB
-   * @param {Object} options - Options de connexion
+   * @param uri - URI de connexion MongoDB
+   * @param options - Options de connexion
    */
-  async connect(uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/darna', options = {}) {
+  async connect(uri: string = process.env.MONGODB_URI || 'mongodb://localhost:27017/darna', options: any = {}): Promise<typeof mongoose> {
     try {
       const defaultOptions = {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
-        bufferCommands: false,
-        bufferMaxEntries: 0,
         ...options
       };
 
@@ -53,7 +47,7 @@ class DatabaseConfig {
   /**
    * Initialise les index de base
    */
-  async initializeIndexes() {
+  private async initializeIndexes(): Promise<void> {
     try {
       await indexConfig.createAllIndexes();
       logger.info('📋 Index de base configurés avec succès');
@@ -67,7 +61,7 @@ class DatabaseConfig {
   /**
    * Configure les gestionnaires d'événements pour la connexion
    */
-  setupEventHandlers() {
+  private setupEventHandlers(): void {
     if (!this.connection) return;
 
     // Connexion établie
@@ -103,7 +97,7 @@ class DatabaseConfig {
   /**
    * Ferme la connexion à MongoDB
    */
-  async disconnect() {
+  async disconnect(): Promise<void> {
     try {
       if (this.connection && this.isConnected) {
         await mongoose.connection.close();
@@ -118,17 +112,17 @@ class DatabaseConfig {
 
   /**
    * Vérifie l'état de la connexion
-   * @returns {boolean} True si connecté
+   * @returns True si connecté
    */
-  isConnectionActive() {
+  isConnectionActive(): boolean {
     return this.isConnected && mongoose.connection.readyState === 1;
   }
 
   /**
    * Obtient les informations de connexion
-   * @returns {Object} Informations de connexion
+   * @returns Informations de connexion
    */
-  getConnectionInfo() {
+  getConnectionInfo(): any {
     if (!this.connection) return null;
 
     return {
@@ -142,15 +136,18 @@ class DatabaseConfig {
 
   /**
    * Teste la connexion à la base de données
-   * @returns {Promise<boolean>} True si le test réussit
+   * @returns True si le test réussit
    */
-  async testConnection() {
+  async testConnection(): Promise<boolean> {
     try {
       if (!this.isConnectionActive()) {
         throw new Error('Aucune connexion active');
       }
 
       // Ping simple pour tester la connexion
+      if (!mongoose.connection.db) {
+        throw new Error('Base de données non disponible');
+      }
       await mongoose.connection.db.admin().ping();
       logger.info('✅ Test de connexion MongoDB réussi');
       return true;
@@ -164,4 +161,4 @@ class DatabaseConfig {
 // Instance singleton
 const databaseConfig = new DatabaseConfig();
 
-module.exports = databaseConfig;
+export default databaseConfig;

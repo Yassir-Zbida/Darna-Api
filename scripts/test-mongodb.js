@@ -6,7 +6,7 @@
  */
 
 const path = require('path');
-const databaseConfig = require('../src/config/database');
+const databaseConfig = require('../dist/src/config/database').default;
 
 // Configuration des variables d'environnement
 require('dotenv').config();

@@ -1,21 +1,24 @@
-const mongoose = require('mongoose');
-const logger = require('../utils/logger');
+import mongoose from 'mongoose';
+import logger from '../utils/logger';
+
+interface IndexDefinition {
+  keys: Record<string, any>;
+  options?: Record<string, any>;
+}
 
 /**
  * Configuration des index de base pour MongoDB
  */
 class IndexConfig {
-  constructor() {
-    this.indexes = new Map();
-    this.initialized = false;
-  }
+  private indexes: Map<string, IndexDefinition[]> = new Map();
+  private initialized: boolean = false;
 
   /**
    * Définit les index pour une collection
-   * @param {string} collectionName - Nom de la collection
-   * @param {Array} indexDefinitions - Définitions des index
+   * @param collectionName - Nom de la collection
+   * @param indexDefinitions - Définitions des index
    */
-  defineIndexes(collectionName, indexDefinitions) {
+  defineIndexes(collectionName: string, indexDefinitions: IndexDefinition[]): void {
     this.indexes.set(collectionName, indexDefinitions);
     logger.info(`📋 Index définis pour la collection: ${collectionName}`);
   }
@@ -23,7 +26,7 @@ class IndexConfig {
   /**
    * Crée tous les index configurés
    */
-  async createAllIndexes() {
+  async createAllIndexes(): Promise<void> {
     if (this.initialized) {
       logger.info('📋 Index déjà initialisés');
       return;
@@ -46,27 +49,39 @@ class IndexConfig {
 
   /**
    * Crée les index pour une collection spécifique
-   * @param {string} collectionName - Nom de la collection
-   * @param {Array} indexDefinitions - Définitions des index
+   * @param collectionName - Nom de la collection
+   * @param indexDefinitions - Définitions des index
    */
-  async createIndexesForCollection(collectionName, indexDefinitions) {
+  async createIndexesForCollection(collectionName: string, indexDefinitions: IndexDefinition[]): Promise<void> {
     try {
+      if (!mongoose.connection.db) {
+        throw new Error('Base de données non disponible');
+      }
       const collection = mongoose.connection.db.collection(collectionName);
       
       for (const indexDef of indexDefinitions) {
         const { keys, options = {} } = indexDef;
         
-        // Vérifier si l'index existe déjà
-        const existingIndexes = await collection.indexes();
-        const indexExists = existingIndexes.some(index => 
-          JSON.stringify(index.key) === JSON.stringify(keys)
-        );
+        try {
+          // Vérifier si l'index existe déjà
+          const existingIndexes = await collection.indexes();
+          const indexExists = existingIndexes.some(index => 
+            JSON.stringify(index.key) === JSON.stringify(keys)
+          );
 
-        if (!indexExists) {
-          await collection.createIndex(keys, options);
-          logger.info(`   ✅ Index créé: ${collectionName}.${JSON.stringify(keys)}`);
-        } else {
-          logger.info(`   ℹ️  Index existe déjà: ${collectionName}.${JSON.stringify(keys)}`);
+          if (!indexExists) {
+            await collection.createIndex(keys, options);
+            logger.info(`   ✅ Index créé: ${collectionName}.${JSON.stringify(keys)}`);
+          } else {
+            logger.info(`   ℹ️  Index existe déjà: ${collectionName}.${JSON.stringify(keys)}`);
+          }
+        } catch (indexError: any) {
+          // Si la collection n'existe pas encore, on log mais on continue
+          if (indexError.code === 26 || indexError.codeName === 'NamespaceNotFound') {
+            logger.info(`   ℹ️  Collection ${collectionName} n'existe pas encore, index sera créé lors du premier insert`);
+          } else {
+            throw indexError;
+          }
         }
       }
     } catch (error) {
@@ -77,10 +92,13 @@ class IndexConfig {
 
   /**
    * Supprime tous les index (sauf _id_)
-   * @param {string} collectionName - Nom de la collection
+   * @param collectionName - Nom de la collection
    */
-  async dropIndexes(collectionName) {
+  async dropIndexes(collectionName: string): Promise<void> {
     try {
+      if (!mongoose.connection.db) {
+        throw new Error('Base de données non disponible');
+      }
       const collection = mongoose.connection.db.collection(collectionName);
       await collection.dropIndexes();
       logger.info(`🗑️  Index supprimés pour: ${collectionName}`);
@@ -92,11 +110,14 @@ class IndexConfig {
 
   /**
    * Liste tous les index d'une collection
-   * @param {string} collectionName - Nom de la collection
-   * @returns {Array} Liste des index
+   * @param collectionName - Nom de la collection
+   * @returns Liste des index
    */
-  async listIndexes(collectionName) {
+  async listIndexes(collectionName: string): Promise<any[]> {
     try {
+      if (!mongoose.connection.db) {
+        throw new Error('Base de données non disponible');
+      }
       const collection = mongoose.connection.db.collection(collectionName);
       const indexes = await collection.indexes();
       return indexes;
@@ -108,11 +129,14 @@ class IndexConfig {
 
   /**
    * Analyse les performances des index
-   * @param {string} collectionName - Nom de la collection
-   * @param {Object} query - Requête à analyser
+   * @param collectionName - Nom de la collection
+   * @param query - Requête à analyser
    */
-  async analyzeQuery(collectionName, query) {
+  async analyzeQuery(collectionName: string, query: any): Promise<any> {
     try {
+      if (!mongoose.connection.db) {
+        throw new Error('Base de données non disponible');
+      }
       const collection = mongoose.connection.db.collection(collectionName);
       const explainResult = await collection.find(query).explain('executionStats');
       
@@ -132,7 +156,7 @@ class IndexConfig {
 /**
  * Configuration des index de base pour l'application Darna
  */
-function configureBaseIndexes() {
+function configureBaseIndexes(): IndexConfig {
   const indexConfig = new IndexConfig();
 
   // Index pour la collection des utilisateurs
@@ -253,4 +277,4 @@ function configureBaseIndexes() {
 // Instance singleton
 const indexConfig = configureBaseIndexes();
 
-module.exports = indexConfig;
+export default indexConfig;

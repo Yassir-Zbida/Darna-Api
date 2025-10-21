@@ -10,7 +10,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Import database configuration
-const databaseConfig = require('./config/database');
+import databaseConfig from './config/database';
 
 // Import routes (to be created)
 // import authRoutes from './routes/auth';

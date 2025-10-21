@@ -1,10 +1,12 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Utilitaire de logging simple pour l'application
  */
 class Logger {
+  private logDir: string;
+
   constructor() {
     this.logDir = path.join(process.cwd(), 'logs');
     this.ensureLogDirectory();
@@ -13,7 +15,7 @@ class Logger {
   /**
    * S'assure que le répertoire de logs existe
    */
-  ensureLogDirectory() {
+  private ensureLogDirectory(): void {
     if (!fs.existsSync(this.logDir)) {
       fs.mkdirSync(this.logDir, { recursive: true });
     }
@@ -21,12 +23,12 @@ class Logger {
 
   /**
    * Formate le message de log
-   * @param {string} level - Niveau de log
-   * @param {string} message - Message à logger
-   * @param {Object} meta - Métadonnées supplémentaires
-   * @returns {string} Message formaté
+   * @param level - Niveau de log
+   * @param message - Message à logger
+   * @param meta - Métadonnées supplémentaires
+   * @returns Message formaté
    */
-  formatMessage(level, message, meta = {}) {
+  private formatMessage(level: string, message: string, meta: any = {}): string {
     const timestamp = new Date().toISOString();
     const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
     return `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`;
@@ -34,11 +36,11 @@ class Logger {
 
   /**
    * Écrit dans le fichier de log
-   * @param {string} level - Niveau de log
-   * @param {string} message - Message à logger
-   * @param {Object} meta - Métadonnées supplémentaires
+   * @param level - Niveau de log
+   * @param message - Message à logger
+   * @param meta - Métadonnées supplémentaires
    */
-  writeToFile(level, message, meta = {}) {
+  private writeToFile(level: string, message: string, meta: any = {}): void {
     const logFile = path.join(this.logDir, 'app.log');
     const formattedMessage = this.formatMessage(level, message, meta);
     
@@ -47,10 +49,10 @@ class Logger {
 
   /**
    * Log d'information
-   * @param {string} message - Message à logger
-   * @param {Object} meta - Métadonnées supplémentaires
+   * @param message - Message à logger
+   * @param meta - Métadonnées supplémentaires
    */
-  info(message, meta = {}) {
+  info(message: string, meta: any = {}): void {
     const formattedMessage = this.formatMessage('info', message, meta);
     console.log(formattedMessage);
     this.writeToFile('info', message, meta);
@@ -58,10 +60,10 @@ class Logger {
 
   /**
    * Log d'avertissement
-   * @param {string} message - Message à logger
-   * @param {Object} meta - Métadonnées supplémentaires
+   * @param message - Message à logger
+   * @param meta - Métadonnées supplémentaires
    */
-  warn(message, meta = {}) {
+  warn(message: string, meta: any = {}): void {
     const formattedMessage = this.formatMessage('warn', message, meta);
     console.warn(formattedMessage);
     this.writeToFile('warn', message, meta);
@@ -69,10 +71,10 @@ class Logger {
 
   /**
    * Log d'erreur
-   * @param {string} message - Message à logger
-   * @param {Object} meta - Métadonnées supplémentaires
+   * @param message - Message à logger
+   * @param meta - Métadonnées supplémentaires
    */
-  error(message, meta = {}) {
+  error(message: string, meta: any = {}): void {
     const formattedMessage = this.formatMessage('error', message, meta);
     console.error(formattedMessage);
     this.writeToFile('error', message, meta);
@@ -80,10 +82,10 @@ class Logger {
 
   /**
    * Log de débogage
-   * @param {string} message - Message à logger
-   * @param {Object} meta - Métadonnées supplémentaires
+   * @param message - Message à logger
+   * @param meta - Métadonnées supplémentaires
    */
-  debug(message, meta = {}) {
+  debug(message: string, meta: any = {}): void {
     if (process.env.NODE_ENV === 'development') {
       const formattedMessage = this.formatMessage('debug', message, meta);
       console.log(formattedMessage);
@@ -95,4 +97,4 @@ class Logger {
 // Instance singleton
 const logger = new Logger();
 
-module.exports = logger;
+export default logger;

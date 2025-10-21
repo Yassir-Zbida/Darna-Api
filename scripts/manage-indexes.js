@@ -10,8 +10,8 @@
  */
 
 const path = require('path');
-const databaseConfig = require('../src/config/database');
-const indexConfig = require('../src/config/indexes');
+const databaseConfig = require('../dist/src/config/database').default;
+const indexConfig = require('../dist/src/config/indexes').default;
 
 // Configuration des variables d'environnement
 require('dotenv').config();

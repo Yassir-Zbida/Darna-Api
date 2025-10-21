@@ -13,7 +13,7 @@ describe('Database Integration Tests', () => {
 
   afterAll(async () => {
     // Nettoyage après les tests
-    const databaseConfig = require('../../src/config/database');
+    const databaseConfig = require('../../dist/src/config/database').default;
     await databaseConfig.disconnect();
   });
 
@@ -31,7 +31,7 @@ describe('Database Integration Tests', () => {
     let databaseConfig: any;
 
     beforeAll(() => {
-      databaseConfig = require('../../src/config/database');
+      databaseConfig = require('../../dist/src/config/database').default;
     });
 
     test('should have connection methods', () => {
