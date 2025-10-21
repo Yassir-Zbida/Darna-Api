@@ -80,6 +80,209 @@ docker-compose up -d
 # L'API sera disponible sur http://localhost:3000
 ```
 
+## 🐳 Docker & Docker Compose
+
+### Services Inclus
+
+Le projet inclut une configuration Docker complète avec les services suivants :
+
+- **API** : Application Node.js (Port 3000)
+- **MongoDB** : Base de données (Port 27017)
+- **Redis** : Cache et sessions (Port 6379)
+- **MinIO** : Stockage d'objets (Ports 9000, 9001)
+- **Nginx** : Reverse proxy (Ports 80, 443) - Optionnel
+
+### Commandes Docker Essentielles
+
+#### 🚀 Démarrage des Services
+
+```bash
+# Démarrer tous les services
+docker-compose up -d
+
+# Démarrer avec logs en temps réel
+docker-compose up
+
+# Démarrer seulement les services de base (sans Nginx)
+docker-compose up -d mongodb redis minio api
+```
+
+#### 🔧 Gestion des Services
+
+```bash
+# Vérifier le statut des services
+docker-compose ps
+
+# Voir les logs de tous les services
+docker-compose logs
+
+# Voir les logs d'un service spécifique
+docker-compose logs api
+docker-compose logs mongodb
+
+# Redémarrer un service
+docker-compose restart api
+
+# Redémarrer tous les services
+docker-compose restart
+```
+
+#### 🛠️ Développement
+
+```bash
+# Reconstruire l'image API après modifications
+docker-compose build api
+
+# Reconstruire et redémarrer
+docker-compose up -d --build api
+
+# Accéder au shell du conteneur API
+docker-compose exec api sh
+
+# Exécuter des commandes dans le conteneur
+docker-compose exec api npm run test
+docker-compose exec api npm run lint
+```
+
+#### 🧪 Tests et Validation
+
+```bash
+# Tester la connexion à l'API
+curl http://localhost:3000/health
+
+# Tester MongoDB
+docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
+
+# Tester Redis
+docker-compose exec redis redis-cli ping
+
+# Tester MinIO
+curl http://localhost:9000/minio/health/live
+```
+
+#### 🧹 Nettoyage
+
+```bash
+# Arrêter tous les services
+docker-compose down
+
+# Arrêter et supprimer les volumes
+docker-compose down -v
+
+# Supprimer les images
+docker-compose down --rmi all
+
+# Nettoyage complet (images, volumes, réseaux)
+docker system prune -a
+```
+
+### Configuration Docker
+
+#### Variables d'Environnement Docker
+
+```env
+# API Configuration
+NODE_ENV=production
+PORT=3000
+
+# MongoDB
+MONGODB_URI=mongodb://admin:password123@mongodb:27017/darna?authSource=admin
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# MinIO
+MINIO_ENDPOINT=minio
+MINIO_PORT=9000
+MINIO_USE_SSL=false
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin123
+MINIO_BUCKET_NAME=darna-media
+```
+
+#### Volumes Docker
+
+- `mongodb_data` : Données MongoDB persistantes
+- `redis_data` : Données Redis persistantes
+- `minio_data` : Fichiers MinIO persistants
+- `./logs` : Logs de l'application (bind mount)
+- `./uploads` : Fichiers uploadés (bind mount)
+
+#### Réseau Docker
+
+- **Réseau** : `darna-network` (172.20.0.0/16)
+- **Communication** : Tous les services communiquent via le réseau interne
+
+### Health Checks
+
+Tous les services incluent des health checks automatiques :
+
+```bash
+# Vérifier l'état de santé
+docker-compose ps
+
+# Les services doivent afficher "healthy" pour :
+# - mongodb
+# - redis  
+# - minio
+# - api
+```
+
+### Production avec Nginx
+
+Pour déployer en production avec Nginx :
+
+```bash
+# Démarrer avec le profil production
+docker-compose --profile production up -d
+
+# Cela inclura Nginx comme reverse proxy
+```
+
+### Dépannage Docker
+
+#### Problèmes Courants
+
+1. **Port déjà utilisé** :
+   ```bash
+   # Vérifier les ports utilisés
+   lsof -i :3000
+   lsof -i :27017
+   ```
+
+2. **Services non démarrés** :
+   ```bash
+   # Vérifier les logs
+   docker-compose logs
+   
+   # Redémarrer les services
+   docker-compose restart
+   ```
+
+3. **Problèmes de permissions** :
+   ```bash
+   # Vérifier les permissions des volumes
+   ls -la logs/
+   ls -la uploads/
+   ```
+
+#### Commandes de Debug
+
+```bash
+# Inspecter un conteneur
+docker inspect darna-api
+
+# Voir les ressources utilisées
+docker stats
+
+# Voir les réseaux Docker
+docker network ls
+
+# Voir les volumes Docker
+docker volume ls
+```
+
 ## 🧪 Tests
 
 ```bash
