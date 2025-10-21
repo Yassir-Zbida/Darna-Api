@@ -331,33 +331,106 @@ npm run test:integration
 ## 🛠️ Scripts Disponibles
 
 ```bash
-npm start          # Démarrer en production
-npm run dev        # Démarrer en développement
-npm run build      # Build de production
-npm test           # Lancer les tests
-npm run lint       # Vérifier le code
-npm run format     # Formater le code
+# Développement
+npm run dev                    # Démarrer en mode développement
+npm run dev:watch            # Démarrer avec rechargement automatique
+npm run dev:debug             # Démarrer en mode debug
+
+# Production
+npm start                     # Démarrer en production
+npm run build                # Compiler TypeScript vers JavaScript
+npm run build:watch          # Compiler en mode watch
+npm run build:clean          # Nettoyer et compiler
+
+# Qualité de Code
+npm run lint                  # Vérifier le code avec ESLint
+npm run lint:fix             # Corriger automatiquement les erreurs ESLint
+npm run format               # Formater le code avec Prettier
+npm run format:check         # Vérifier le formatage
+
+# Tests
+npm test                     # Lancer tous les tests
+npm run test:watch           # Tests en mode watch
+npm run test:coverage        # Tests avec couverture
+npm run test:integration     # Tests d'intégration
+
+# Base de données
+npm run db:seed              # Peupler la base de données
+npm run db:migrate           # Exécuter les migrations
+npm run db:reset             # Réinitialiser la base de données
+npm run db:test              # Tester la connexion MongoDB
+
+# Stockage
+npm run minio:test           # Tester la connexion MinIO
+
+# Docker
+npm run docker:build         # Construire l'image Docker
+npm run docker:run           # Exécuter le conteneur
+npm run docker:compose:up    # Démarrer avec Docker Compose
+npm run docker:compose:down  # Arrêter Docker Compose
+npm run docker:compose:logs  # Voir les logs Docker
+
+# PM2 (Process Manager)
+npm run pm2:start            # Démarrer avec PM2
+npm run pm2:stop             # Arrêter PM2
+npm run pm2:restart          # Redémarrer PM2
+npm run pm2:delete           # Supprimer le processus PM2
+npm run pm2:logs             # Voir les logs PM2
+npm run pm2:monit            # Monitoring PM2
+
+# Utilitaires
+npm run clean                # Nettoyer node_modules
+npm run install:clean        # Installation propre
+npm run logs                 # Voir les logs de l'application
+npm run health               # Vérifier la santé de l'API
 ```
 
 ## 🌐 API Endpoints
 
 ### Authentification
 
-- `POST /api/auth/register` - Inscription
-- `POST /api/auth/login` - Connexion
-- `POST /api/auth/refresh` - Rafraîchir le token
+- `POST /api/v1/auth/register` - Inscription utilisateur
+- `POST /api/v1/auth/login` - Connexion utilisateur
+- `POST /api/v1/auth/refresh` - Rafraîchir le token JWT
+- `POST /api/v1/auth/logout` - Déconnexion
+- `POST /api/v1/auth/forgot-password` - Mot de passe oublié
+- `POST /api/v1/auth/reset-password` - Réinitialiser le mot de passe
+- `GET /api/v1/auth/profile` - Profil utilisateur
+- `PUT /api/v1/auth/profile` - Modifier le profil
 
-### Annonces
+### Annonces Immobilières
 
-- `GET /api/announcements` - Liste des annonces
-- `POST /api/announcements` - Créer une annonce
-- `GET /api/announcements/:id` - Détails d'une annonce
-- `PUT /api/announcements/:id` - Modifier une annonce
+- `GET /api/v1/announcements` - Liste des annonces avec filtres
+- `POST /api/v1/announcements` - Créer une nouvelle annonce
+- `GET /api/v1/announcements/:id` - Détails d'une annonce
+- `PUT /api/v1/announcements/:id` - Modifier une annonce
+- `DELETE /api/v1/announcements/:id` - Supprimer une annonce
+- `POST /api/v1/announcements/:id/images` - Upload d'images
+- `POST /api/v1/announcements/:id/videos` - Upload de vidéos
+- `GET /api/v1/announcements/search` - Recherche avancée
+- `GET /api/v1/announcements/featured` - Annonces mises en avant
 
-### Chat
+### Chat & Messagerie
 
-- `GET /api/chat/rooms` - Liste des conversations
-- `POST /api/chat/messages` - Envoyer un message
+- `GET /api/v1/chat/rooms` - Liste des conversations
+- `POST /api/v1/chat/rooms` - Créer une conversation
+- `GET /api/v1/chat/rooms/:id/messages` - Messages d'une conversation
+- `POST /api/v1/chat/messages` - Envoyer un message
+- `PUT /api/v1/chat/messages/:id` - Modifier un message
+- `DELETE /api/v1/chat/messages/:id` - Supprimer un message
+
+### Estimation & IA
+
+- `POST /api/v1/estimation/analyze` - Analyse d'une propriété
+- `GET /api/v1/estimation/history` - Historique des estimations
+- `POST /api/v1/estimation/feedback` - Feedback sur l'estimation
+
+### Gestion des Fichiers
+
+- `POST /api/v1/upload/images` - Upload d'images
+- `POST /api/v1/upload/videos` - Upload de vidéos
+- `DELETE /api/v1/upload/:id` - Supprimer un fichier
+- `GET /api/v1/upload/:id` - Télécharger un fichier
 
 ## 🔧 Configuration
 
@@ -365,28 +438,53 @@ npm run format     # Formater le code
 
 ```env
 # Base de données
-MONGODB_URI=mongodb://localhost:27017/darna
+MONGODB_URI=mongodb://admin:password123@localhost:27017/darna?authSource=admin
 DB_NAME=darna
 
 # JWT
-JWT_SECRET=your-secret-key
+JWT_SECRET=darna-super-secret-jwt-key-2024
 JWT_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRES_IN=30d
 
 # MinIO (Stockage)
 MINIO_ENDPOINT=localhost
 MINIO_PORT=9000
+MINIO_USE_SSL=false
 MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin123
+MINIO_BUCKET_NAME=darna-media
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# Email (Nodemailer)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
 
 # Server
 PORT=3000
 NODE_ENV=development
+API_VERSION=v1
+CORS_ORIGIN=http://localhost:3000,http://localhost:3001
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# File Upload
+MAX_FILE_SIZE=10485760
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/gif,video/mp4,video/avi
 ```
 
 ## 👥 Équipe
 
-- **Yassir Zbida** - Développeur Principal
-- [Autres membres de l'équipe]
+- **Yassir Zbida** - Développeur Principal & Architecte
+- **Abderrahmane AHLALLAY** - Développeur Backend & DevOps
+- **Youcode Students** - Équipe de développement
 
 ## 🤝 Contribution
 
@@ -406,13 +504,16 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 
 Pour toute question ou support :
 
-- 📧 Email : support@darna.com
+- 📧 Email : support@darna.ma
 - 🐛 Issues : [GitHub Issues](https://github.com/Yassir-Zbida/Darna-Api/issues)
 - 📖 Documentation : [Wiki](https://github.com/Yassir-Zbida/Darna-Api/wiki)
+- 💬 Discord : [Darna Community](https://discord.gg/darna)
+- 📱 WhatsApp : +212 6XX-XXXXXX
+- 🌐 Site Web : [www.darna.ma](https://www.darna.ma)
 
 ---
 
 <div align="center">
-  <p>Fait avec ❤️ par l'équipe Darna</p>
-  <p>© 2024 Darna. Tous droits réservés.</p>
+  <p>Fait avec ❤️ par Youcode Students</p>
+  <p>© 2025 Darna. Tous droits réservés.</p>
 </div>
