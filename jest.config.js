@@ -1,11 +1,15 @@
 module.exports = {
   // Test environment
   testEnvironment: 'node',
+  preset: 'ts-jest',
   
   // Test file patterns
   testMatch: [
+    '**/tests/**/*.test.ts',
+    '**/tests/**/*.spec.ts',
     '**/tests/**/*.test.js',
     '**/tests/**/*.spec.js',
+    '**/__tests__/**/*.ts',
     '**/__tests__/**/*.js'
   ],
   
@@ -24,16 +28,19 @@ module.exports = {
   
   // Coverage paths
   collectCoverageFrom: [
+    'src/**/*.ts',
     'src/**/*.js',
+    '!src/app.ts',
     '!src/app.js',
     '!src/config/**',
     '!src/constants/**',
+    '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/coverage/**'
   ],
   
   // Setup files
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   
   // Test timeout
   testTimeout: 10000,
@@ -59,7 +66,7 @@ module.exports = {
   },
   
   // Test results processor
-  testResultsProcessor: 'jest-sonar-reporter',
+  // testResultsProcessor: 'jest-sonar-reporter',
   
   // Coverage path ignore patterns
   coveragePathIgnorePatterns: [

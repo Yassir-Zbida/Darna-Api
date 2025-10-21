@@ -5,17 +5,22 @@ module.exports = {
     jest: true
   },
   extends: [
-    'eslint:recommended'
+    'eslint:recommended',
+    '@typescript-eslint/recommended'
   ],
+  parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
-    sourceType: 'module'
+    sourceType: 'module',
+    project: './tsconfig.json'
   },
+  plugins: ['@typescript-eslint'],
   rules: {
     // Code quality rules
     'no-console': 'warn',
     'no-debugger': 'error',
-    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-undef': 'error',
     'no-duplicate-imports': 'error',
     'no-var': 'error',
@@ -54,12 +59,13 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['tests/**/*.js'],
+      files: ['tests/**/*.ts', 'tests/**/*.js'],
       env: {
         jest: true
       },
       rules: {
-        'no-console': 'off'
+        'no-console': 'off',
+        '@typescript-eslint/no-explicit-any': 'off'
       }
     }
   ]

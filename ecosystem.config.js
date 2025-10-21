@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'darna-api',
-      script: 'src/app.js',
+      script: 'dist/app.js',
       instances: 'max',
       exec_mode: 'cluster',
       env: {
