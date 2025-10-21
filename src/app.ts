@@ -95,7 +95,7 @@ class DarnaApp {
     });
 
     // 404 handler
-    this.app.use('*', (req: Request, res: Response) => {
+    this.app.use((req: Request, res: Response) => {
       res.status(404).json({
         error: 'Route not found',
         message: `Cannot ${req.method} ${req.originalUrl}`
