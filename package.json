@@ -1,0 +1,21 @@
+{
+  "name": "darna-api",
+  "version": "1.0.0",
+  "description": "Darna est un système de gestion d’annonces immobilières intégrant media, abonnements, affichage prioritaire, chat temps réel et estimation de prix.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yassir-Zbida/Darna-Api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Yassir-Zbida/Darna-Api/issues"
+  },
+  "homepage": "https://github.com/Yassir-Zbida/Darna-Api#readme"
+}
