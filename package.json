@@ -41,6 +41,7 @@
     "db:seed": "node scripts/seed.js",
     "db:migrate": "node scripts/migrate.js",
     "db:reset": "node scripts/reset.js",
+    "db:test": "node scripts/test-mongodb.js",
     "logs": "tail -f logs/app.log",
     "health": "curl -f http://localhost:3000/health || exit 1",
     "precommit": "npm run lint && npm run test",

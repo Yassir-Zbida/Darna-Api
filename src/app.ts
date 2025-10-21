@@ -9,6 +9,9 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
+// Import database configuration
+const databaseConfig = require('./config/database');
+
 // Import routes (to be created)
 // import authRoutes from './routes/auth';
 // import propertyRoutes from './routes/properties';
@@ -62,11 +65,18 @@ class DarnaApp {
   private initializeRoutes(): void {
     // Health check endpoint
     this.app.get('/health', (req: Request, res: Response) => {
+      const dbStatus = databaseConfig.isConnectionActive() ? 'connected' : 'disconnected';
+      const dbInfo = databaseConfig.getConnectionInfo();
+      
       res.status(200).json({
         status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        database: {
+          status: dbStatus,
+          ...(dbInfo && { info: dbInfo })
+        }
       });
     });
 
@@ -105,12 +115,35 @@ class DarnaApp {
     });
   }
 
-  public start(): void {
-    this.app.listen(this.port, () => {
-      console.log(`🚀 Darna API server running on port ${this.port}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 Health check: http://localhost:${this.port}/health`);
-    });
+  /**
+   * Initialise la connexion à la base de données
+   */
+  private async initializeDatabase(): Promise<void> {
+    try {
+      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/darna';
+      await databaseConfig.connect(mongoUri);
+      console.log('✅ Base de données MongoDB initialisée');
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'initialisation de la base de données:', error);
+      throw error;
+    }
+  }
+
+  public async start(): Promise<void> {
+    try {
+      // Initialisation de la base de données
+      await this.initializeDatabase();
+      
+      // Démarrage du serveur
+      this.app.listen(this.port, () => {
+        console.log(`🚀 Darna API server running on port ${this.port}`);
+        console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`🔗 Health check: http://localhost:${this.port}/health`);
+      });
+    } catch (error) {
+      console.error('❌ Erreur lors du démarrage de l\'application:', error);
+      process.exit(1);
+    }
   }
 
   public getApp(): Application {
