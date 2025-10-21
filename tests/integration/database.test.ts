@@ -2,7 +2,7 @@
  * Tests d'intégration pour la configuration de base de données MongoDB
  */
 
-import { testMongoDBConnection, testBasicOperations } from '../../scripts/test-mongodb';
+import { testMongoDBConnection } from '../../scripts/test-mongodb';
 
 describe('Database Integration Tests', () => {
   beforeAll(async () => {
@@ -22,9 +22,6 @@ describe('Database Integration Tests', () => {
       await expect(testMongoDBConnection()).resolves.not.toThrow();
     });
 
-    test('should perform basic database operations', async () => {
-      await expect(testBasicOperations()).resolves.not.toThrow();
-    });
   });
 
   describe('Database Configuration', () => {

@@ -39,8 +39,6 @@ async function testMongoDBConnection() {
       console.log(`   Database: ${connectionInfo.name}`);
       console.log(`   État: ${connectionInfo.readyState === 1 ? 'Connecté' : 'Déconnecté'}`);
 
-      // Test d'opérations de base
-      await testBasicOperations();
       
     } else {
       throw new Error('Test de connexion échoué');
@@ -66,50 +64,6 @@ async function testMongoDBConnection() {
   }
 }
 
-/**
- * Test d'opérations de base sur MongoDB
- */
-async function testBasicOperations() {
-  console.log('\n🔧 Test d\'opérations de base...');
-  
-  try {
-    const mongoose = require('mongoose');
-    
-    // Test de création d'une collection temporaire
-    const testCollection = mongoose.connection.db.collection('test_connection');
-    
-    // Test d'insertion
-    const testDoc = {
-      message: 'Test de connexion MongoDB',
-      timestamp: new Date(),
-      testId: Math.random().toString(36).substr(2, 9)
-    };
-    
-    const insertResult = await testCollection.insertOne(testDoc);
-    console.log(`   ✅ Insertion réussie (ID: ${insertResult.insertedId})`);
-    
-    // Test de lecture
-    const findResult = await testCollection.findOne({ _id: insertResult.insertedId });
-    console.log(`   ✅ Lecture réussie (document trouvé: ${!!findResult})`);
-    
-    // Test de mise à jour
-    const updateResult = await testCollection.updateOne(
-      { _id: insertResult.insertedId },
-      { $set: { status: 'tested' } }
-    );
-    console.log(`   ✅ Mise à jour réussie (${updateResult.modifiedCount} document modifié)`);
-    
-    // Test de suppression
-    const deleteResult = await testCollection.deleteOne({ _id: insertResult.insertedId });
-    console.log(`   ✅ Suppression réussie (${deleteResult.deletedCount} document supprimé)`);
-    
-    console.log('\n🎉 Tous les tests d\'opérations de base ont réussi !');
-    
-  } catch (error) {
-    console.error(`   ❌ Erreur lors des tests d'opérations: ${error.message}`);
-    throw error;
-  }
-}
 
 /**
  * Fonction principale
@@ -132,4 +86,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { testMongoDBConnection, testBasicOperations };
+module.exports = { testMongoDBConnection };

@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import logger from '../utils/logger';
-import indexConfig from './indexes';
 
 /**
  * Configuration de la base de données MongoDB
@@ -33,9 +32,6 @@ class DatabaseConfig {
       // Gestion des événements de connexion
       this.setupEventHandlers();
 
-      // Configuration des index de base
-      await this.initializeIndexes();
-
       return this.connection;
     } catch (error) {
       this.isConnected = false;
@@ -44,19 +40,6 @@ class DatabaseConfig {
     }
   }
 
-  /**
-   * Initialise les index de base
-   */
-  private async initializeIndexes(): Promise<void> {
-    try {
-      await indexConfig.createAllIndexes();
-      logger.info('📋 Index de base configurés avec succès');
-    } catch (error) {
-      logger.error('❌ Erreur lors de la configuration des index:', error);
-      // Ne pas faire échouer la connexion pour les index
-      logger.warn('⚠️  Connexion établie mais index non configurés');
-    }
-  }
 
   /**
    * Configure les gestionnaires d'événements pour la connexion
