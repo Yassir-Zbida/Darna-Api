@@ -37,7 +37,8 @@
     "db:test": "node scripts/test-mongodb.js",
     "minio:test": "node scripts/test-minio.js",
     "logs": "tail -f logs/app.log",
-    "health": "curl -f http://localhost:3000/health || exit 1"
+    "health": "curl -f http://localhost:3000/health || exit 1",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -92,11 +93,22 @@
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^9.38.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.5",
     "nodemon": "^3.1.10",
     "pm2": "^6.0.13",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
