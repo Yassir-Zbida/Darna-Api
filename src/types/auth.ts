@@ -9,6 +9,16 @@ export interface IUser {
     verificationToken?: string;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
+    subscriptionType?: 'gratuit'|'pro'|'premium';
+    companyName?: string;
+    isKYCVerified?: boolean;
+    twoFactorEnabled?: boolean;
+    lastLogin?: Date;
+    isActive?: boolean;
+    companyInfo?: {
+        siret?: string;
+        address?: string;
+    };
     createdAt: Date;
     updatedAt: Date;
 }
