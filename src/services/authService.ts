@@ -822,6 +822,69 @@ export class AuthService {
     }
 
     /**
+     * Register a new user
+     * @param userData - User registration data
+     * @returns Promise<AuthResponse>
+     */
+    static async register(userData: any): Promise<any> {
+        try {
+            const { email, password, name, phone, role } = userData;
+
+            // Check if user already exists
+            const existingUser = await User.findOne({ email: email.toLowerCase() });
+            if (existingUser) {
+                return {
+                    success: false,
+                    message: 'Cet email existe déjà'
+                };
+            }
+
+            // Hash password
+            const hashedPassword = await this.hashPassword(password);
+
+            // Create new user
+            const newUser = new User({
+                email: email.toLowerCase(),
+                password: hashedPassword,
+                name,
+                phone,
+                role: role || 'particulier',
+                isActive: true,
+                isVerified: false
+            });
+
+            await newUser.save();
+
+            // Generate tokens
+            const tokens = this.generateTokenPair({
+                userId: (newUser._id as any).toString(),
+                email: newUser.email,
+                role: newUser.role
+            });
+
+            // Store refresh token
+            await this.storeRefreshToken(newUser, tokens.refreshToken);
+
+            logger.info(`Nouvel utilisateur enregistré: ${email}`);
+
+            return {
+                success: true,
+                message: 'Utilisateur créé avec succès',
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                user: this.sanitizeUser(newUser)
+            };
+
+        } catch (error) {
+            logger.error('Erreur lors de l\'inscription:', error);
+            return {
+                success: false,
+                message: 'Erreur lors de la création de l\'utilisateur'
+            };
+        }
+    }
+
+    /**
      * Log failed login attempt with enhanced security monitoring
      * @param email - User email
      * @param ip - User IP address
@@ -885,56 +948,3 @@ export class AuthService {
         }
     }
 }
-import { User } from "../models/User";
-import { RegisterData, AuthResponse } from "../types/auth";
-import bcrypt from 'bcryptjs';
-import jwt from "jsonwebtoken";
-
-class AuthService {
-    public async register(userData: RegisterData): Promise<AuthResponse> {
-        try {
-            const isUserExist = await User.findOne({ email: userData.email });
-            if (isUserExist) {
-                return {
-                    success: false,
-                    message: "Cet email existe déjà"
-                };
-            }
-            const hashedPassword = await bcrypt.hash(userData.password, 10);
-            const newUser = new User({
-                ...userData,
-                password: hashedPassword
-            });
-            
-            await newUser.save();
-
-            const token = jwt.sign(
-                { userId: (newUser._id as any).toString(), email: newUser.email, role: newUser.role },
-                process.env.JWT_SECRET || 'ERREUR: MISSING_JWT_SECRET_ENV_VAR',
-                { expiresIn: '7d' }
-            );
-
-            return {
-                success: true,
-                message: "Utilisateur créé avec succès",
-                token,
-                user: {
-                    email: newUser.email,
-                    name: newUser.name,
-                    role: newUser.role,
-                    isVerified: newUser.isVerified,
-                    createdAt: newUser.createdAt,
-                    updatedAt: newUser.updatedAt
-                }
-            };
-        } catch (error) {
-            console.error('Erreur lors de l\'inscription:', error);
-            return {
-                success: false,
-                message: "Erreur lors de la création de l'utilisateur"
-            };
-        }
-    }
-}
-
-export const authService = new AuthService();

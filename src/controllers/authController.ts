@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/authService';
-import { LoginCredentials, RefreshTokenData, DeviceInfo } from '../types/auth';
+import { LoginCredentials, RefreshTokenData, DeviceInfo, RegisterData } from '../types/auth';
 import { AuthErrorType, createErrorResponse } from '../types/errors';
 import logger from '../utils/logger';
 
@@ -10,7 +10,7 @@ export class AuthController {
         try {
             const { email, password, name, phone, role } = req.body;
             const userData: RegisterData = { email, password, name, phone, role };
-            const authResponse = await authService.register(userData);
+            const authResponse = await AuthService.register(userData);
             res.status(authResponse.success ? 201 : 400).json(authResponse);
         } catch (error) {
             console.error('Erreur dans le contrôleur register:', error);
