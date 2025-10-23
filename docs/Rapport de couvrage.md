@@ -329,13 +329,13 @@
 
 ---
 
-<div align="center">
 
 **📊 Rapport généré le :** 23/10/2025  
 **🔄 Prochaine mise à jour :** 25/10/2025  
 **📈 Évolution :** Coverage en progression URGENTE  
 **🚨 Deadline :** 31/10/2025 (8 JOURS RESTANTS!)
 
+<div align="center">
 *Ce rapport est généré automatiquement et mis à jour quotidiennement jusqu'à la deadline.*
 
 </div>
