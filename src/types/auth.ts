@@ -39,7 +39,8 @@ export interface RegisterData {
 export interface AuthResponse {
     success: boolean;
     message: string;
-    token?:string;
+    accessToken?: string;
+    refreshToken?: string;
     user?: Omit<IUser, 'password'>;
 }
 
@@ -47,8 +48,25 @@ export interface JwtPayLoad {
     userId: string;
     email: string;
     role: string;
+    tokenType: 'access' | 'refresh';
     iat?: number;
     exp?: number;
+}
+
+export interface TokenPair {
+    accessToken: string;
+    refreshToken: string;
+}
+
+export interface RefreshTokenData {
+    refreshToken: string;
+}
+
+export interface TokenResponse {
+    success: boolean;
+    message: string;
+    accessToken?: string;
+    refreshToken?: string;
 }
 
 export interface ForgotPasswordData {
