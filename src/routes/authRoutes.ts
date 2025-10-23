@@ -1,17 +1,14 @@
 import { Router } from 'express';
-import { AuthController } from '../controllers/authController';
+
 import { body } from 'express-validator';
+import AuthController from '../controllers/authController';
 import { userValidator } from '../validators/userValidator';
 
 const router = Router();
 const authController = new AuthController();
 
-/**
- * Authentication Routes
- * All routes are prefixed with /api/auth
- */
 
-// Inscription
+// Route d'inscription
 router.post('/register', 
     userValidator.getValidationRules(),
     authController.register
