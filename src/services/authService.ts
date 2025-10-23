@@ -8,8 +8,16 @@ import {
     IUser,
     TokenPair,
     RefreshTokenData,
-    TokenResponse
+    TokenResponse,
+    StoredRefreshToken,
+    DeviceInfo
 } from '../types/auth';
+import { 
+    AuthErrorType, 
+    AuthError, 
+    createAuthError, 
+    createErrorResponse 
+} from '../types/errors';
 import logger from '../utils/logger';
 
 export class AuthService {
@@ -30,38 +38,81 @@ export class AuthService {
 
             // Validate input
             if (!email || !password) {
+                const error = createAuthError(AuthErrorType.REQUIRED_FIELDS_MISSING, {
+                    missingFields: [
+                        !email ? 'email' : null,
+                        !password ? 'password' : null
+                    ].filter(Boolean)
+                });
+                logger.warn('Tentative de connexion avec des champs manquants', { email: !!email });
                 return {
                     success: false,
-                    message: 'Email et mot de passe sont requis'
+                    message: error.message
+                };
+            }
+
+            // Validate email format
+            if (!this.isValidEmail(email)) {
+                const error = createAuthError(AuthErrorType.EMAIL_INVALID, { email });
+                logger.warn(`Tentative de connexion avec un email invalide: ${email}`);
+                return {
+                    success: false,
+                    message: error.message
                 };
             }
 
             // Find user by email
             const user = await User.findOne({ email: email.toLowerCase() });
             if (!user) {
+                const error = createAuthError(AuthErrorType.ACCOUNT_NOT_FOUND, { email });
                 logger.warn(`Tentative de connexion avec un email inexistant: ${email}`);
                 return {
                     success: false,
-                    message: 'Email ou mot de passe incorrect'
+                    message: error.message
                 };
             }
 
             // Check if user is active
             if (!user.isActive) {
+                const error = createAuthError(AuthErrorType.ACCOUNT_INACTIVE, { 
+                    email, 
+                    userId: user._id 
+                });
                 logger.warn(`Tentative de connexion avec un compte inactif: ${email}`);
                 return {
                     success: false,
-                    message: 'Votre compte a été désactivé. Contactez le support.'
+                    message: error.message
+                };
+            }
+
+            // Check if account is locked (for future implementation)
+            if (this.isAccountLocked(user)) {
+                const error = createAuthError(AuthErrorType.ACCOUNT_LOCKED, { 
+                    email, 
+                    userId: user._id 
+                });
+                logger.warn(`Tentative de connexion avec un compte verrouillé: ${email}`);
+                return {
+                    success: false,
+                    message: error.message
                 };
             }
 
             // Verify password
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
+                const error = createAuthError(AuthErrorType.INCORRECT_PASSWORD, { 
+                    email, 
+                    userId: user._id 
+                });
                 logger.warn(`Tentative de connexion avec un mot de passe incorrect: ${email}`);
+                
+                // Log failed attempt for security monitoring
+                await this.logFailedAttempt(email);
+                
                 return {
                     success: false,
-                    message: 'Email ou mot de passe incorrect'
+                    message: error.message
                 };
             }
 
@@ -79,7 +130,11 @@ export class AuthService {
             // Remove password from user object
             const userWithoutPassword = this.sanitizeUser(user);
 
-            logger.info(`Connexion réussie pour l'utilisateur: ${email}`);
+            logger.info(`Connexion réussie pour l'utilisateur: ${email}`, {
+                userId: user._id,
+                role: user.role,
+                lastLogin: user.lastLogin
+            });
 
             return {
                 success: true,
@@ -91,9 +146,12 @@ export class AuthService {
 
         } catch (error) {
             logger.error('Erreur lors de la connexion:', error);
+            const authError = createAuthError(AuthErrorType.INTERNAL_ERROR, { 
+                originalError: error instanceof Error ? error.message : 'Unknown error' 
+            });
             return {
                 success: false,
-                message: 'Une erreur interne est survenue'
+                message: authError.message
             };
         }
     }
@@ -218,29 +276,99 @@ export class AuthService {
     }
 
     /**
-     * Refresh access token using refresh token
+     * Refresh access token using refresh token with rotation
      * @param refreshTokenData - Refresh token data
+     * @param deviceInfo - Device information for security
      * @returns Promise<TokenResponse>
      */
-    static async refreshAccessToken(refreshTokenData: RefreshTokenData): Promise<TokenResponse> {
+    static async refreshAccessToken(refreshTokenData: RefreshTokenData, deviceInfo?: DeviceInfo): Promise<TokenResponse> {
         try {
             const { refreshToken } = refreshTokenData;
+
+            // Validate refresh token presence
+            if (!refreshToken) {
+                const error = createAuthError(AuthErrorType.TOKEN_MISSING, { tokenType: 'refresh' });
+                logger.warn('Tentative de rafraîchissement sans token');
+                return {
+                    success: false,
+                    message: error.message
+                };
+            }
 
             // Verify refresh token
             const payload = this.verifyRefreshToken(refreshToken);
             if (!payload) {
+                const error = createAuthError(AuthErrorType.REFRESH_TOKEN_INVALID, { 
+                    token: refreshToken.substring(0, 20) + '...' 
+                });
+                logger.warn('Tentative de rafraîchissement avec un token invalide');
                 return {
                     success: false,
-                    message: 'Refresh token invalide ou expiré'
+                    message: error.message
                 };
             }
 
             // Check if user still exists and is active
             const user = await User.findById(payload.userId);
-            if (!user || !user.isActive) {
+            if (!user) {
+                const error = createAuthError(AuthErrorType.ACCOUNT_NOT_FOUND, { 
+                    userId: payload.userId 
+                });
+                logger.warn(`Tentative de rafraîchissement pour un utilisateur inexistant: ${payload.userId}`);
                 return {
                     success: false,
-                    message: 'Utilisateur introuvable ou inactif'
+                    message: error.message
+                };
+            }
+
+            if (!user.isActive) {
+                const error = createAuthError(AuthErrorType.ACCOUNT_INACTIVE, { 
+                    userId: payload.userId,
+                    email: user.email 
+                });
+                logger.warn(`Tentative de rafraîchissement pour un compte inactif: ${user.email}`);
+                return {
+                    success: false,
+                    message: error.message
+                };
+            }
+
+            // Check if refresh token exists in database and is not revoked
+            const storedToken = await this.findStoredRefreshToken(user, refreshToken);
+            if (!storedToken) {
+                const error = createAuthError(AuthErrorType.REFRESH_TOKEN_INVALID, { 
+                    reason: 'Token not found in database' 
+                });
+                logger.warn(`Token de rafraîchissement introuvable en base: ${user.email}`);
+                return {
+                    success: false,
+                    message: error.message
+                };
+            }
+
+            if (storedToken.isRevoked) {
+                const error = createAuthError(AuthErrorType.TOKEN_REVOKED, { 
+                    userId: payload.userId 
+                });
+                logger.warn(`Tentative d'utilisation d'un token révoqué: ${user.email}`);
+                return {
+                    success: false,
+                    message: error.message
+                };
+            }
+
+            // Check if token is expired
+            if (new Date() > storedToken.expiresAt) {
+                // Clean up expired token
+                await this.revokeRefreshToken(user, refreshToken);
+                const error = createAuthError(AuthErrorType.TOKEN_EXPIRED, { 
+                    userId: payload.userId,
+                    expiredAt: storedToken.expiresAt 
+                });
+                logger.warn(`Token de rafraîchissement expiré: ${user.email}`);
+                return {
+                    success: false,
+                    message: error.message
                 };
             }
 
@@ -251,20 +379,37 @@ export class AuthService {
                 role: payload.role
             });
 
-            logger.info(`Nouveau access token généré pour l'utilisateur: ${payload.email}`);
+            // Generate new refresh token (token rotation)
+            const newRefreshToken = this.generateRefreshToken({
+                userId: payload.userId,
+                email: payload.email,
+                role: payload.role
+            });
+
+            // Store new refresh token and revoke old one
+            await this.storeRefreshToken(user, newRefreshToken, deviceInfo);
+            await this.revokeRefreshToken(user, refreshToken);
+
+            logger.info(`Tokens renouvelés avec rotation pour l'utilisateur: ${payload.email}`, {
+                userId: payload.userId,
+                deviceInfo
+            });
 
             return {
                 success: true,
-                message: 'Access token renouvelé avec succès',
+                message: 'Tokens renouvelés avec succès',
                 accessToken: newAccessToken,
-                refreshToken: refreshToken // Keep the same refresh token
+                refreshToken: newRefreshToken
             };
 
         } catch (error) {
             logger.error('Erreur lors du renouvellement du token:', error);
+            const authError = createAuthError(AuthErrorType.INTERNAL_ERROR, { 
+                originalError: error instanceof Error ? error.message : 'Unknown error' 
+            });
             return {
                 success: false,
-                message: 'Une erreur interne est survenue'
+                message: authError.message
             };
         }
     }
@@ -472,12 +617,271 @@ export class AuthService {
     }
 
     /**
-     * Log failed login attempt (for future implementation)
+     * Store refresh token in database
+     * @param user - User document
+     * @param refreshToken - Refresh token to store
+     * @param deviceInfo - Device information
+     */
+    static async storeRefreshToken(user: any, refreshToken: string, deviceInfo?: DeviceInfo): Promise<void> {
+        try {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+
+            const tokenData = {
+                token: refreshToken,
+                expiresAt,
+                deviceInfo: deviceInfo || {}
+            };
+
+            user.refreshTokens.push(tokenData);
+            await user.save();
+
+            logger.info(`Refresh token stocké pour l'utilisateur: ${user.email}`);
+        } catch (error) {
+            logger.error('Erreur lors du stockage du refresh token:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Find stored refresh token
+     * @param user - User document
+     * @param refreshToken - Refresh token to find
+     * @returns StoredRefreshToken | null
+     */
+    static async findStoredRefreshToken(user: any, refreshToken: string): Promise<StoredRefreshToken | null> {
+        try {
+            const storedToken = user.refreshTokens.find((token: any) => 
+                token.token === refreshToken && !token.isRevoked
+            );
+            return storedToken || null;
+        } catch (error) {
+            logger.error('Erreur lors de la recherche du refresh token:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Revoke refresh token
+     * @param user - User document
+     * @param refreshToken - Refresh token to revoke
+     */
+    static async revokeRefreshToken(user: any, refreshToken: string): Promise<void> {
+        try {
+            const tokenIndex = user.refreshTokens.findIndex((token: any) => 
+                token.token === refreshToken
+            );
+
+            if (tokenIndex !== -1) {
+                user.refreshTokens[tokenIndex].isRevoked = true;
+                await user.save();
+                logger.info(`Refresh token révoqué pour l'utilisateur: ${user.email}`);
+            }
+        } catch (error) {
+            logger.error('Erreur lors de la révocation du refresh token:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Revoke all refresh tokens for a user
+     * @param user - User document
+     */
+    static async revokeAllRefreshTokens(user: any): Promise<void> {
+        try {
+            user.refreshTokens.forEach((token: any) => {
+                token.isRevoked = true;
+            });
+            await user.save();
+            logger.info(`Tous les refresh tokens révoqués pour l'utilisateur: ${user.email}`);
+        } catch (error) {
+            logger.error('Erreur lors de la révocation de tous les refresh tokens:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Clean up expired refresh tokens
+     * @param user - User document
+     */
+    static async cleanupExpiredRefreshTokens(user: any): Promise<void> {
+        try {
+            const now = new Date();
+            user.refreshTokens = user.refreshTokens.filter((token: any) => 
+                token.expiresAt > now && !token.isRevoked
+            );
+            await user.save();
+            logger.info(`Tokens expirés nettoyés pour l'utilisateur: ${user.email}`);
+        } catch (error) {
+            logger.error('Erreur lors du nettoyage des tokens expirés:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get active refresh tokens for a user
+     * @param userId - User ID
+     * @returns Promise<StoredRefreshToken[]>
+     */
+    static async getActiveRefreshTokens(userId: string): Promise<StoredRefreshToken[]> {
+        try {
+            const user = await User.findById(userId);
+            if (!user) return [];
+
+            const now = new Date();
+            return (user as any).refreshTokens.filter((token: any) => 
+                token.expiresAt > now && !token.isRevoked
+            );
+        } catch (error) {
+            logger.error('Erreur lors de la récupération des tokens actifs:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Update login method to store refresh token
+     * @param credentials - Login credentials
+     * @param deviceInfo - Device information
+     * @returns Promise<AuthResponse>
+     */
+    static async loginWithDeviceInfo(credentials: LoginCredentials, deviceInfo?: DeviceInfo): Promise<AuthResponse> {
+        try {
+            const { email, password } = credentials;
+
+            // Validate input
+            if (!email || !password) {
+                return {
+                    success: false,
+                    message: 'Email et mot de passe sont requis'
+                };
+            }
+
+            // Find user by email
+            const user = await User.findOne({ email: email.toLowerCase() });
+            if (!user) {
+                logger.warn(`Tentative de connexion avec un email inexistant: ${email}`);
+                return {
+                    success: false,
+                    message: 'Email ou mot de passe incorrect'
+                };
+            }
+
+            // Check if user is active
+            if (!user.isActive) {
+                logger.warn(`Tentative de connexion avec un compte inactif: ${email}`);
+                return {
+                    success: false,
+                    message: 'Votre compte a été désactivé. Contactez le support.'
+                };
+            }
+
+            // Verify password
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                logger.warn(`Tentative de connexion avec un mot de passe incorrect: ${email}`);
+                return {
+                    success: false,
+                    message: 'Email ou mot de passe incorrect'
+                };
+            }
+
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+
+            // Generate JWT tokens
+            const tokens = this.generateTokenPair({
+                userId: (user._id as any).toString(),
+                email: user.email,
+                role: user.role
+            });
+
+            // Store refresh token
+            await this.storeRefreshToken(user, tokens.refreshToken, deviceInfo);
+
+            // Remove password from user object
+            const userWithoutPassword = this.sanitizeUser(user);
+
+            logger.info(`Connexion réussie pour l'utilisateur: ${email}`);
+
+            return {
+                success: true,
+                message: 'Connexion réussie',
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                user: userWithoutPassword
+            };
+
+        } catch (error) {
+            logger.error('Erreur lors de la connexion:', error);
+            return {
+                success: false,
+                message: 'Une erreur interne est survenue'
+            };
+        }
+    }
+
+    /**
+     * Log failed login attempt with enhanced security monitoring
      * @param email - User email
      * @param ip - User IP address
+     * @param reason - Reason for failure
      */
-    static async logFailedAttempt(email: string, ip?: string): Promise<void> {
-        logger.warn(`Tentative de connexion échouée pour ${email} depuis ${ip || 'IP inconnue'}`);
-        // Future implementation: store failed attempts in database
+    static async logFailedAttempt(email: string, ip?: string, reason?: string): Promise<void> {
+        const logData = {
+            email,
+            ip: ip || 'IP inconnue',
+            reason: reason || 'Mot de passe incorrect',
+            timestamp: new Date().toISOString(),
+            userAgent: 'Unknown' // Could be passed from controller
+        };
+
+        logger.warn(`Tentative de connexion échouée`, logData);
+        
+        // Future implementation: 
+        // 1. Store failed attempts in database with rate limiting
+        // 2. Implement account lockout after multiple failed attempts
+        // 3. Send security alerts for suspicious activity
+        // 4. Track device fingerprinting for security analysis
+    }
+
+    /**
+     * Check for suspicious login patterns
+     * @param email - User email
+     * @param ip - User IP address
+     * @returns Promise<boolean> - true if suspicious
+     */
+    static async isSuspiciousActivity(email: string, ip?: string): Promise<boolean> {
+        try {
+            // Future implementation: check for:
+            // 1. Multiple failed attempts from same IP
+            // 2. Login attempts from unusual locations
+            // 3. Rapid successive attempts
+            // 4. Known malicious IP addresses
+            
+            logger.info(`Vérification d'activité suspecte pour ${email} depuis ${ip || 'IP inconnue'}`);
+            return false; // Placeholder
+        } catch (error) {
+            logger.error('Erreur lors de la vérification d\'activité suspecte:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Get failed attempt count for user
+     * @param email - User email
+     * @param timeWindow - Time window in minutes
+     * @returns Promise<number>
+     */
+    static async getFailedAttemptCount(email: string, timeWindow: number = 15): Promise<number> {
+        try {
+            // Future implementation: query database for failed attempts
+            // within the specified time window
+            logger.info(`Récupération du nombre de tentatives échouées pour ${email} dans les ${timeWindow} dernières minutes`);
+            return 0; // Placeholder
+        } catch (error) {
+            logger.error('Erreur lors de la récupération des tentatives échouées:', error);
+            return 0;
+        }
     }
 }

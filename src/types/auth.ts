@@ -62,6 +62,22 @@ export interface RefreshTokenData {
     refreshToken: string;
 }
 
+export interface StoredRefreshToken {
+    token: string;
+    createdAt: Date;
+    expiresAt: Date;
+    isRevoked: boolean;
+    deviceInfo?: {
+        userAgent?: string;
+        ipAddress?: string;
+    };
+}
+
+export interface DeviceInfo {
+    userAgent?: string;
+    ipAddress?: string;
+}
+
 export interface TokenResponse {
     success: boolean;
     message: string;

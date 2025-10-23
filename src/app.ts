@@ -12,8 +12,8 @@ dotenv.config();
 // Import database configuration
 import databaseConfig from './config/database';
 
-// Import routes (to be created)
-// import authRoutes from './routes/auth';
+// Import routes
+import authRoutes from './routes/auth';
 // import propertyRoutes from './routes/properties';
 // import userRoutes from './routes/users';
 
@@ -80,8 +80,8 @@ class DarnaApp {
       });
     });
 
-    // API routes (to be implemented)
-    // this.app.use('/api/auth', authRoutes);
+    // API routes
+    this.app.use('/api/auth', authRoutes);
     // this.app.use('/api/properties', propertyRoutes);
     // this.app.use('/api/users', userRoutes);
 
