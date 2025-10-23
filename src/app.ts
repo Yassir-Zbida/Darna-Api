@@ -13,9 +13,8 @@ dotenv.config();
 import databaseConfig from './config/database';
 
 // Import routes
-import authRoutes from './routes/auth';
-// import propertyRoutes from './routes/properties';
-// import userRoutes from './routes/users';
+import authRoutes from './routes/authRoutes';
+
 
 class DarnaApp {
   private app: Application;
@@ -84,6 +83,7 @@ class DarnaApp {
     this.app.use('/api/auth', authRoutes);
     // this.app.use('/api/properties', propertyRoutes);
     // this.app.use('/api/users', userRoutes);
+
 
     // Root endpoint
     this.app.get('/', (req: Request, res: Response) => {
