@@ -81,6 +81,8 @@ class DarnaApp {
 
     // API routes
     this.app.use('/api/auth', authRoutes);
+    // this.app.use('/api/properties', propertyRoutes);
+    // this.app.use('/api/users', userRoutes);
 
 
     // Root endpoint

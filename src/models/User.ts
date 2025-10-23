@@ -51,6 +51,28 @@ const userSchema = new Schema<UserDocument>({
         maxlength: [100, "Le token de réinitialisation ne peut pas dépasser 100 caractères"]
     },
     resetPasswordExpires: { type: Date },
+    refreshTokens: [{
+        token: {
+            type: String,
+            required: true
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now
+        },
+        expiresAt: {
+            type: Date,
+            required: true
+        },
+        isRevoked: {
+            type: Boolean,
+            default: false
+        },
+        deviceInfo: {
+            userAgent: String,
+            ipAddress: String
+        }
+    }],
     subscriptionType: {
         type: String,
         enum: ['gratuit', 'pro', 'premium'],
