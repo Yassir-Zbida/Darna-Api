@@ -9,6 +9,7 @@ export interface IUser {
     avatar?: string;
     isVerified: boolean;
     verificationToken?: string;
+    verificationTokenExpiry?: Date;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
     refreshTokens?: StoredRefreshToken[];
@@ -22,6 +23,7 @@ export interface IUser {
         siret?: string;
         address?: string;
     };
+    refreshTokens?: StoredRefreshToken[];
     createdAt: Date;
     updatedAt: Date;
 }

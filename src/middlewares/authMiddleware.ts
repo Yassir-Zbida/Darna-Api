@@ -22,13 +22,13 @@ export const auth = (options: AuthOptions = {}) => {
                 return sendError(res, 401, 'Token d\'authentification requis');
             }
 
-            // 2. Vérifier la validité du token
+            // Vérifier la validité du token
             const payload = AuthService.verifyAccessToken(token);
             if (!payload || payload.tokenType !== 'access') {
                 return sendError(res, 401, 'Token invalide ou expiré');
             }
 
-            // 3. Récupérer l'utilisateur complet
+            // Récupérer l'utilisateur complet
             const user = await AuthService.getUserById(payload.userId);
             if (!user) {
                 return sendError(res, 404, 'Utilisateur introuvable');
@@ -62,13 +62,13 @@ export const auth = (options: AuthOptions = {}) => {
             // Vérifier la propriété de la ressource
             if (options.ownership) {
                 const resourceId = (req as any).params[options.ownership];
-                if (resourceId && (user as any)._id !== resourceId && user.role !== 'admin') {
+                if (resourceId && (user as any)._id.toString() !== resourceId && user.role !== 'admin') {
                     return sendError(res, 403, 'Accès refusé - ressource non autorisée');
                 }
             }
 
             // Ajouter l'utilisateur à la requête
-            (req as any).user = user;
+            (req as AuthenticatedRequest).user = user;
 
             logger.debug(`Authentification réussie`, {
                 userId: (user as any)._id,
@@ -94,6 +94,11 @@ export const adminOnly = () => auth({ roles: ['admin'] });
 export const userOnly = () => auth({ roles: ['particulier', 'entreprise'] });
 export const premiumOnly = () => auth({ subscription: 'premium' });
 
+// Ajouter les exports manquants pour la compatibilité
+export const authenticateToken = authRequired;
+export const optionalAuth = authOptional;
+export const requireRole = (allowedRoles: string[]) => auth({ roles: allowedRoles });
+
 /**
  * Fonctions utilitaires pour l'authentification
  */
@@ -114,3 +119,15 @@ function sendError(res: Response, status: number, message: string): void {
         }
     });
 }
+
+export default {
+    auth,
+    authRequired,
+    authOptional,
+    adminOnly,
+    userOnly,
+    premiumOnly,
+    authenticateToken,
+    optionalAuth,
+    requireRole
+};

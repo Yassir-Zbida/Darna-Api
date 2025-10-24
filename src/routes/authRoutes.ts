@@ -71,4 +71,8 @@ router.post('/revoke-all-tokens',
     AuthController.revokeAllTokens
 );
 
+// Routes de vérification d'email (à ajouter depuis la version main)
+router.get('/verify-email/:token', AuthController.verifyEmail);
+router.post('/resend-verification', AuthController.resendVerification);
+
 export default router;
