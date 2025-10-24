@@ -1,144 +1,132 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { AuthService } from '../services/authService';
-import { JwtPayLoad } from '../types/auth';
+import { AuthenticatedRequest, AuthOptions } from '../types/auth';
 import logger from '../utils/logger';
 
-// Extend the Request interface to include user property
-declare global {
-    namespace Express {
-        interface Request {
-            user?: {
-                userId: string;
-                email: string;
-                role: string;
-                tokenType: 'access' | 'refresh';
-            };
-        }
-    }
-}
-
 /**
- * Authentication middleware to verify JWT access tokens
+ * Middleware d'authentification unifié
+ * Vérifie l'authentification, les rôles, les abonnements et la propriété des ressources
  */
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        const authHeader = req.headers.authorization;
-        
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            res.status(401).json({
-                success: false,
-                message: 'Token d\'authentification requis'
-            });
-            return;
-        }
-
-        const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-        
-        if (!token) {
-            res.status(401).json({
-                success: false,
-                message: 'Token d\'authentification requis'
-            });
-            return;
-        }
-
-        // Verify the token using AuthService
-        const payload = AuthService.verifyAccessToken(token);
-        
-        if (!payload) {
-            res.status(401).json({
-                success: false,
-                message: 'Token d\'authentification invalide ou expiré'
-            });
-            return;
-        }
-
-        // Check if token type is 'access'
-        if (payload.tokenType !== 'access') {
-            res.status(401).json({
-                success: false,
-                message: 'Type de token invalide'
-            });
-            return;
-        }
-
-        // Add user information to request object
-        req.user = {
-            userId: payload.userId,
-            email: payload.email,
-            role: payload.role,
-            tokenType: payload.tokenType
-        };
-
-        next();
-    } catch (error) {
-        logger.error('Erreur dans le middleware d\'authentification:', error);
-        res.status(401).json({
-            success: false,
-            message: 'Token d\'authentification invalide'
-        });
-    }
-};
-
-/**
- * Optional authentication middleware - doesn't fail if no token provided
- */
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        const authHeader = req.headers.authorization;
-        
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.substring(7);
+export const auth = (options: AuthOptions = {}) => {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            // Vérifier le token JWT
+            const token = getTokenFromRequest(req);
             
-            if (token) {
-                const payload = AuthService.verifyAccessToken(token);
+            if (!token) {
+                if (options.optional) {
+                    // Authentification optionnelle - continuer sans utilisateur
+                    next();
+                    return;
+                }
+                return sendError(res, 401, 'Token d\'authentification requis');
+            }
+
+            // Vérifier la validité du token
+            const payload = AuthService.verifyAccessToken(token);
+            if (!payload || payload.tokenType !== 'access') {
+                return sendError(res, 401, 'Token invalide ou expiré');
+            }
+
+            // Récupérer l'utilisateur complet
+            const user = await AuthService.getUserById(payload.userId);
+            if (!user) {
+                return sendError(res, 404, 'Utilisateur introuvable');
+            }
+
+            if (!user.isActive) {
+                return sendError(res, 403, 'Compte inactif');
+            }
+
+            // Vérifier les rôles
+            if (options.roles && !options.roles.includes(user.role)) {
+                logger.warn(`Accès refusé - rôle insuffisant`, {
+                    userId: (user as any)._id,
+                    userRole: user.role,
+                    requiredRoles: options.roles
+                });
+                return sendError(res, 403, 'Rôle insuffisant');
+            }
+
+            // Vérifier l'abonnement
+            if (options.subscription) {
+                const subscriptionLevels = { 'gratuit': 0, 'pro': 1, 'premium': 2 };
+                const userLevel = subscriptionLevels[user.subscriptionType || 'gratuit'];
+                const requiredLevel = subscriptionLevels[options.subscription];
                 
-                if (payload && payload.tokenType === 'access') {
-                    req.user = {
-                        userId: payload.userId,
-                        email: payload.email,
-                        role: payload.role,
-                        tokenType: payload.tokenType
-                    };
+                if (userLevel < requiredLevel) {
+                    return sendError(res, 403, 'Abonnement insuffisant');
                 }
             }
-        }
-        
-        next();
-    } catch (error) {
-        // Continue without authentication if token is invalid
-        logger.warn('Token optionnel invalide:', error);
-        next();
-    }
-};
 
-/**
- * Role-based authorization middleware
- */
-export const requireRole = (allowedRoles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-        if (!req.user) {
-            res.status(401).json({
-                success: false,
-                message: 'Authentification requise'
+            // Vérifier la propriété de la ressource
+            if (options.ownership) {
+                const resourceId = (req as any).params[options.ownership];
+                if (resourceId && (user as any)._id.toString() !== resourceId && user.role !== 'admin') {
+                    return sendError(res, 403, 'Accès refusé - ressource non autorisée');
+                }
+            }
+
+            // Ajouter l'utilisateur à la requête
+            (req as AuthenticatedRequest).user = user;
+
+            logger.debug(`Authentification réussie`, {
+                userId: (user as any)._id,
+                email: user.email,
+                role: user.role
             });
-            return;
-        }
 
-        if (!allowedRoles.includes(req.user.role)) {
-            res.status(403).json({
-                success: false,
-                message: 'Accès refusé - Rôle insuffisant'
-            });
-            return;
-        }
+            next();
 
-        next();
+        } catch (error) {
+            logger.error('Erreur dans le middleware d\'authentification:', error);
+            sendError(res, 500, 'Erreur interne du serveur');
+        }
     };
 };
 
+/**
+ * Raccourcis pour les cas d'usage courants
+ */
+export const authRequired = () => auth({});
+export const authOptional = () => auth({ optional: true });
+export const adminOnly = () => auth({ roles: ['admin'] });
+export const userOnly = () => auth({ roles: ['particulier', 'entreprise'] });
+export const premiumOnly = () => auth({ subscription: 'premium' });
+
+// Ajouter les exports manquants pour la compatibilité
+export const authenticateToken = authRequired;
+export const optionalAuth = authOptional;
+export const requireRole = (allowedRoles: string[]) => auth({ roles: allowedRoles });
+
+/**
+ * Fonctions utilitaires pour l'authentification
+ */
+function getTokenFromRequest(req: Request): string | null {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+    return authHeader.substring(7);
+}
+
+function sendError(res: Response, status: number, message: string): void {
+    res.status(status).json({
+        success: false,
+        error: {
+            message,
+            statusCode: status
+        }
+    });
+}
+
 export default {
+    auth,
+    authRequired,
+    authOptional,
+    adminOnly,
+    userOnly,
+    premiumOnly,
     authenticateToken,
     optionalAuth,
     requireRole

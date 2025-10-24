@@ -1,3 +1,5 @@
+import { Request } from 'express';
+
 export interface IUser {
     email:string;
     password: string;
@@ -10,6 +12,7 @@ export interface IUser {
     verificationTokenExpiry?: Date;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
+    refreshTokens?: StoredRefreshToken[];
     subscriptionType?: 'gratuit'|'pro'|'premium';
     companyName?: string;
     isKYCVerified?: boolean;
@@ -35,7 +38,7 @@ export interface RegisterData {
     password: string;
     name: string;
     phone?: string;
-    role?: 'user'|'admin'|'agent';
+    role?: 'visiteur'|'particulier'|'entreprise'|'admin';
 }
 
 export interface AuthResponse {
@@ -94,4 +97,18 @@ export interface ForgotPasswordData {
 export interface ResetPasswordData {
   token: string;
   newPassword: string;
+}
+
+export interface AuthenticatedRequest extends Request {
+    user?: Omit<IUser, 'password'>;
+}
+
+/**
+ * Options pour le middleware d'authentification
+ */
+export interface AuthOptions {
+    roles?: string[];
+    subscription?: 'gratuit' | 'pro' | 'premium';
+    ownership?: string;
+    optional?: boolean;
 }
