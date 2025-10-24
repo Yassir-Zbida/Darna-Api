@@ -35,4 +35,8 @@ router.get('/refresh-tokens', AuthController.getRefreshTokens);
 // Revoke all refresh tokens
 router.post('/revoke-all-tokens', AuthController.revokeAllTokens);
 
+// Email verification routes
+router.get('/verify-email/:token', AuthController.verifyEmail);
+router.post('/resend-verification', AuthController.resendVerification);
+
 export default router;

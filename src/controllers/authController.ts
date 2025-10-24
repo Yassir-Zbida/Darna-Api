@@ -342,6 +342,72 @@ export class AuthController {
             });
         }
     }
+
+    /**
+     * Verify email with token
+     * GET /api/auth/verify-email/:token
+     */
+    static async verifyEmail(req: Request, res: Response): Promise<void> {
+        try {
+            const { token } = req.params;
+
+            if (!token) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Token de vérification requis'
+                });
+                return;
+            }
+
+            const result = await AuthService.verifyEmail(token);
+
+            if (result.success) {
+                res.status(200).json(result);
+            } else {
+                res.status(400).json(result);
+            }
+
+        } catch (error) {
+            logger.error('Erreur dans le contrôleur de vérification d\'email:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erreur interne du serveur'
+            });
+        }
+    }
+
+    /**
+     * Resend verification email
+     * POST /api/auth/resend-verification
+     */
+    static async resendVerification(req: Request, res: Response): Promise<void> {
+        try {
+            const { email } = req.body;
+
+            if (!email) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Email requis'
+                });
+                return;
+            }
+
+            const result = await AuthService.resendVerificationEmail(email);
+
+            if (result.success) {
+                res.status(200).json(result);
+            } else {
+                res.status(400).json(result);
+            }
+
+        } catch (error) {
+            logger.error('Erreur dans le contrôleur de renvoi de vérification:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erreur interne du serveur'
+            });
+        }
+    }
 }
 
 
