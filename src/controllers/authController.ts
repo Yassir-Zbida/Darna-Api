@@ -3,6 +3,7 @@ import { AuthService } from '../services/authService';
 import { LoginCredentials, RefreshTokenData, DeviceInfo, RegisterData } from '../types/auth';
 import { AuthErrorType, createErrorResponse } from '../types/errors';
 import logger from '../utils/logger';
+import { User } from '../models/User';
 
 export class AuthController {
   
@@ -145,8 +146,8 @@ export class AuthController {
      */
     static async logout(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -180,8 +181,8 @@ export class AuthController {
      */
     static async getProfile(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -267,8 +268,8 @@ export class AuthController {
      */
     static async getRefreshTokens(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -306,8 +307,8 @@ export class AuthController {
      */
     static async revokeAllTokens(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -318,7 +319,7 @@ export class AuthController {
             }
 
             // Get user and revoke all tokens
-            const user = await AuthService.getUserById(userId);
+            const user = await User.findById(userId);
             if (!user) {
                 res.status(404).json({
                     success: false,
