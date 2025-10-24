@@ -20,6 +20,7 @@ export interface IUser {
         siret?: string;
         address?: string;
     };
+    refreshTokens?: StoredRefreshToken[];
     createdAt: Date;
     updatedAt: Date;
 }
