@@ -7,6 +7,7 @@ export interface IUser {
     avatar?: string;
     isVerified: boolean;
     verificationToken?: string;
+    verificationTokenExpiry?: Date;
     resetPasswordToken?: string;
     resetPasswordExpires?: Date;
     subscriptionType?: 'gratuit'|'pro'|'premium';
@@ -19,6 +20,7 @@ export interface IUser {
         siret?: string;
         address?: string;
     };
+    refreshTokens?: StoredRefreshToken[];
     createdAt: Date;
     updatedAt: Date;
 }

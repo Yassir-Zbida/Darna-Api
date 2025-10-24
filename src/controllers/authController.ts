@@ -3,6 +3,7 @@ import { AuthService } from '../services/authService';
 import { LoginCredentials, RefreshTokenData, DeviceInfo, RegisterData } from '../types/auth';
 import { AuthErrorType, createErrorResponse } from '../types/errors';
 import logger from '../utils/logger';
+import { User } from '../models/User';
 
 export class AuthController {
   
@@ -145,8 +146,8 @@ export class AuthController {
      */
     static async logout(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -180,8 +181,8 @@ export class AuthController {
      */
     static async getProfile(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -267,8 +268,8 @@ export class AuthController {
      */
     static async getRefreshTokens(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -306,8 +307,8 @@ export class AuthController {
      */
     static async revokeAllTokens(req: Request, res: Response): Promise<void> {
         try {
-            // Get user ID from token (if middleware is implemented)
-            const userId = (req as any).user?.userId;
+            // Get user ID from authenticated user (set by auth middleware)
+            const userId = req.user?.userId;
 
             if (!userId) {
                 res.status(401).json({
@@ -318,7 +319,7 @@ export class AuthController {
             }
 
             // Get user and revoke all tokens
-            const user = await AuthService.getUserById(userId);
+            const user = await User.findById(userId);
             if (!user) {
                 res.status(404).json({
                     success: false,
@@ -336,6 +337,72 @@ export class AuthController {
 
         } catch (error) {
             logger.error('Erreur dans le contrôleur de révocation des tokens:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erreur interne du serveur'
+            });
+        }
+    }
+
+    /**
+     * Verify email with token
+     * GET /api/auth/verify-email/:token
+     */
+    static async verifyEmail(req: Request, res: Response): Promise<void> {
+        try {
+            const { token } = req.params;
+
+            if (!token) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Token de vérification requis'
+                });
+                return;
+            }
+
+            const result = await AuthService.verifyEmail(token);
+
+            if (result.success) {
+                res.status(200).json(result);
+            } else {
+                res.status(400).json(result);
+            }
+
+        } catch (error) {
+            logger.error('Erreur dans le contrôleur de vérification d\'email:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Erreur interne du serveur'
+            });
+        }
+    }
+
+    /**
+     * Resend verification email
+     * POST /api/auth/resend-verification
+     */
+    static async resendVerification(req: Request, res: Response): Promise<void> {
+        try {
+            const { email } = req.body;
+
+            if (!email) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Email requis'
+                });
+                return;
+            }
+
+            const result = await AuthService.resendVerificationEmail(email);
+
+            if (result.success) {
+                res.status(200).json(result);
+            } else {
+                res.status(400).json(result);
+            }
+
+        } catch (error) {
+            logger.error('Erreur dans le contrôleur de renvoi de vérification:', error);
             res.status(500).json({
                 success: false,
                 message: 'Erreur interne du serveur'

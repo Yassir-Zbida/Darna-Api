@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { User } from '../models/User';
 import { 
     LoginCredentials, 
@@ -842,6 +843,10 @@ export class AuthService {
             // Hash password
             const hashedPassword = await this.hashPassword(password);
 
+            // Generate verification token
+            const verificationToken = this.generateVerificationToken();
+            const verificationTokenExpiry = this.generateVerificationTokenExpiry();
+
             // Create new user
             const newUser = new User({
                 email: email.toLowerCase(),
@@ -850,7 +855,9 @@ export class AuthService {
                 phone,
                 role: role || 'particulier',
                 isActive: true,
-                isVerified: false
+                isVerified: false,
+                verificationToken,
+                verificationTokenExpiry
             });
 
             await newUser.save();
@@ -865,11 +872,21 @@ export class AuthService {
             // Store refresh token
             await this.storeRefreshToken(newUser, tokens.refreshToken);
 
+            // Send verification email
+            try {
+                const { EmailService } = await import('./emailService');
+                await EmailService.sendVerificationEmail(email, name, verificationToken);
+                logger.info(`Email de vérification envoyé à: ${email}`);
+            } catch (emailError) {
+                logger.error('Erreur lors de l\'envoi de l\'email de vérification:', emailError);
+                // Don't fail registration if email sending fails
+            }
+
             logger.info(`Nouvel utilisateur enregistré: ${email}`);
 
             return {
                 success: true,
-                message: 'Utilisateur créé avec succès',
+                message: 'Utilisateur créé avec succès. Vérifiez votre email pour activer votre compte.',
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
                 user: this.sanitizeUser(newUser)
@@ -945,6 +962,153 @@ export class AuthService {
         } catch (error) {
             logger.error('Erreur lors de la récupération des tentatives échouées:', error);
             return 0;
+        }
+    }
+
+    /**
+     * Generate a unique verification token
+     * @returns string - Unique verification token
+     */
+    static generateVerificationToken(): string {
+        return crypto.randomBytes(32).toString('hex');
+    }
+
+    /**
+     * Generate verification token expiry date (24 hours from now)
+     * @returns Date - Expiry date
+     */
+    static generateVerificationTokenExpiry(): Date {
+        const expiry = new Date();
+        expiry.setHours(expiry.getHours() + 24); // 24 hours from now
+        return expiry;
+    }
+
+    /**
+     * Verify email with token
+     * @param token - Verification token
+     * @returns Promise<{ success: boolean, message: string }>
+     */
+    static async verifyEmail(token: string): Promise<{ success: boolean, message: string }> {
+        try {
+            if (!token) {
+                return {
+                    success: false,
+                    message: 'Token de vérification requis'
+                };
+            }
+
+            // Find user by verification token
+            const user = await User.findOne({ 
+                verificationToken: token,
+                verificationTokenExpiry: { $gt: new Date() }
+            });
+
+            if (!user) {
+                return {
+                    success: false,
+                    message: 'Token de vérification invalide ou expiré'
+                };
+            }
+
+            // Check if user is already verified
+            if (user.isVerified) {
+                return {
+                    success: true,
+                    message: 'Email déjà vérifié'
+                };
+            }
+
+            // Mark user as verified and clear verification token
+            user.isVerified = true;
+            user.verificationToken = undefined as any;
+            user.verificationTokenExpiry = undefined as any;
+            await user.save();
+
+            logger.info(`Email vérifié avec succès pour l'utilisateur: ${user.email}`);
+
+            return {
+                success: true,
+                message: 'Email vérifié avec succès'
+            };
+
+        } catch (error) {
+            logger.error('Erreur lors de la vérification de l\'email:', error);
+            return {
+                success: false,
+                message: 'Erreur lors de la vérification de l\'email'
+            };
+        }
+    }
+
+    /**
+     * Resend verification email
+     * @param email - User email
+     * @returns Promise<{ success: boolean, message: string }>
+     */
+    static async resendVerificationEmail(email: string): Promise<{ success: boolean, message: string }> {
+        try {
+            if (!email) {
+                return {
+                    success: false,
+                    message: 'Email requis'
+                };
+            }
+
+            // Find user by email
+            const user = await User.findOne({ email: email.toLowerCase() });
+            if (!user) {
+                return {
+                    success: false,
+                    message: 'Utilisateur introuvable'
+                };
+            }
+
+            // Check if user is already verified
+            if (user.isVerified) {
+                return {
+                    success: false,
+                    message: 'Email déjà vérifié'
+                };
+            }
+
+            // Generate new verification token
+            const verificationToken = this.generateVerificationToken();
+            const verificationTokenExpiry = this.generateVerificationTokenExpiry();
+
+            // Update user with new token
+            user.verificationToken = verificationToken;
+            user.verificationTokenExpiry = verificationTokenExpiry;
+            await user.save();
+
+            // Import EmailService dynamically to avoid circular dependency
+            const { EmailService } = await import('./emailService');
+            
+            // Send verification email
+            const emailSent = await EmailService.sendVerificationEmail(
+                user.email, 
+                user.name, 
+                verificationToken
+            );
+
+            if (emailSent) {
+                logger.info(`Email de vérification renvoyé à: ${user.email}`);
+                return {
+                    success: true,
+                    message: 'Email de vérification renvoyé'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: 'Erreur lors de l\'envoi de l\'email'
+                };
+            }
+
+        } catch (error) {
+            logger.error('Erreur lors du renvoi de l\'email de vérification:', error);
+            return {
+                success: false,
+                message: 'Erreur lors du renvoi de l\'email de vérification'
+            };
         }
     }
 }

@@ -46,6 +46,9 @@ const userSchema = new Schema<UserDocument>({
         type: String,
         maxlength: [100, "Le token de vérification ne peut pas dépasser 100 caractères"]
     },
+    verificationTokenExpiry: { 
+        type: Date
+    },
     resetPasswordToken: { 
         type: String,
         maxlength: [100, "Le token de réinitialisation ne peut pas dépasser 100 caractères"]
