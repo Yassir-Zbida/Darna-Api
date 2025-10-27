@@ -1,115 +1,101 @@
 import mongoose, { Document, Schema } from "mongoose";
-import { IUser } from "../types/auth";
 
-export interface UserDocument extends IUser, Document {}
+export interface UserDocument extends Document {
+  _id: mongoose.Types.ObjectId;
+  email: string;
+  password: string;
+  name: string;
+  role: 'visiteur' | 'particulier' | 'entreprise' | 'admin';
+  phone?: string;
+  avatar?: string;
+  isVerified: boolean;
+  subscriptionType: 'gratuit' | 'pro' | 'premium';
+  companyName?: string;
+  isKYCVerified?: boolean;
+  twoFactorEnabled?: boolean;
+  lastLogin?: Date;
+  isActive: boolean;
+  companyInfo?: {
+    siret?: string;
+    address?: string;
+  };
+}
 
+// Modèle User
 const userSchema = new Schema<UserDocument>({
-    email: {
-        type: String,
-        required: [true, "Email is required"],
-        unique: true,
-        minlength: [10, "Email doit contenir au moins 10 caractères"],
-        maxlength: [30, "Email ne peut pas dépasser 30 caractères"]
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  password: {
+    type: String,
+    required: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  role: {
+    type: String,
+    enum: ['visiteur', 'particulier', 'entreprise', 'admin'],
+    default: 'visiteur'
+  },
+  phone: {
+    type: String,
+    trim: true
+  },
+  avatar: {
+    type: String,
+    trim: true
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  subscriptionType: {
+    type: String,
+    enum: ['gratuit', 'pro', 'premium'],
+    default: 'gratuit'
+  },
+  companyName: {
+    type: String,
+    trim: true
+  },
+  isKYCVerified: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  lastLogin: Date,
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  companyInfo: {
+    siret: {
+      type: String,
+      trim: true
     },
-    password: {
-        type: String,
-        required: [true, "Password is required"],
-        minlength: [8, "Le mot de passe doit contenir au moins 8 caractères"],
-        maxlength: [128, "Le mot de passe ne peut pas dépasser 128 caractères"]
-    },
-    name: {
-        type: String,
-        required: [true, "Name is required"],
-        minlength: [3, "Le nom doit contenir au moins 2 caractères"],
-        maxlength: [50, "Le nom ne peut pas dépasser 50 caractères"]
-    },
-    role: {
-        type: String,
-        enum: ['visiteur', 'particulier', 'entreprise', 'admin'],
-        required: [true, "Role is required"],
-        default: 'visiteur'
-    },
-    phone: { 
-        type: String,
-        minlength: [10, "Le téléphone doit contenir au moins 10 caractères"],
-        maxlength: [13, "Le téléphone ne peut pas dépasser 13 caractères"]
-    },
-    avatar: { 
-        type: String,
-        maxlength: [500, "L'URL de l'avatar ne peut pas dépasser 500 caractères"]
-    },
-    isVerified: { 
-        type: Boolean, 
-        default: false
-    },
-    verificationToken: { 
-        type: String,
-        maxlength: [100, "Le token de vérification ne peut pas dépasser 100 caractères"]
-    },
-    verificationTokenExpiry: { 
-        type: Date
-    },
-    resetPasswordToken: { 
-        type: String,
-        maxlength: [100, "Le token de réinitialisation ne peut pas dépasser 100 caractères"]
-    },
-    resetPasswordExpires: { type: Date },
-    refreshTokens: [{
-        token: {
-            type: String,
-            required: true
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now
-        },
-        expiresAt: {
-            type: Date,
-            required: true
-        },
-        isRevoked: {
-            type: Boolean,
-            default: false
-        },
-        deviceInfo: {
-            userAgent: String,
-            ipAddress: String
-        }
-    }],
-    subscriptionType: {
-        type: String,
-        enum: ['gratuit', 'pro', 'premium'],
-        default: 'gratuit'
-    },
-    companyName: { 
-        type: String,
-        maxlength: [100, "Le nom de l'entreprise ne peut pas dépasser 100 caractères"]
-    },
-    isKYCVerified: { 
-        type: Boolean, 
-        default: false 
-    },
-    twoFactorEnabled: { 
-        type: Boolean, 
-        default: false 
-    },
-    lastLogin: { type: Date },
-    isActive: { 
-        type: Boolean, 
-        default: true 
-    },
-    companyInfo: {
-        siret: {
-            type: String,
-            maxlength: [14, "Le SIRET doit contenir 14 caractères"]
-        },
-        address: {
-            type: String,
-            maxlength: [200, "L'adresse ne peut pas dépasser 200 caractères"]
-        }
+    address: {
+      type: String,
+      trim: true
     }
+  }
 }, {
-    timestamps: true,
-})
+  timestamps: true
+});
 
-export const User = mongoose.model<UserDocument>("User", userSchema);
+// Index essentiels
+userSchema.index({ email: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ subscriptionType: 1 });
+userSchema.index({ isVerified: 1 });
+
+export const UserModel = mongoose.model<UserDocument>("User", userSchema);

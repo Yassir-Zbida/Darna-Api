@@ -1,133 +1,55 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from '../services/authService';
-import { AuthenticatedRequest, AuthOptions } from '../types/auth';
-import logger from '../utils/logger';
+import jwt from 'jsonwebtoken';
+import { UserModel } from '../models/User';
+import { AuthenticatedRequest } from '../types/auth';
+import { ErrorType, createErrorResponse } from '../types/errors';
 
-/**
- * Middleware d'authentification unifié
- * Vérifie l'authentification, les rôles, les abonnements et la propriété des ressources
- */
-export const auth = (options: AuthOptions = {}) => {
-    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            // Vérifier le token JWT
-            const token = getTokenFromRequest(req);
-            
-            if (!token) {
-                if (options.optional) {
-                    // Authentification optionnelle - continuer sans utilisateur
-                    next();
-                    return;
-                }
-                return sendError(res, 401, 'Token d\'authentification requis');
-            }
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-            // Vérifier la validité du token
-            const payload = AuthService.verifyAccessToken(token);
-            if (!payload || payload.tokenType !== 'access') {
-                return sendError(res, 401, 'Token invalide ou expiré');
-            }
-
-            // Récupérer l'utilisateur complet
-            const user = await AuthService.getUserById(payload.userId);
-            if (!user) {
-                return sendError(res, 404, 'Utilisateur introuvable');
-            }
-
-            if (!user.isActive) {
-                return sendError(res, 403, 'Compte inactif');
-            }
-
-            // Vérifier les rôles
-            if (options.roles && !options.roles.includes(user.role)) {
-                logger.warn(`Accès refusé - rôle insuffisant`, {
-                    userId: (user as any)._id,
-                    userRole: user.role,
-                    requiredRoles: options.roles
-                });
-                return sendError(res, 403, 'Rôle insuffisant');
-            }
-
-            // Vérifier l'abonnement
-            if (options.subscription) {
-                const subscriptionLevels = { 'gratuit': 0, 'pro': 1, 'premium': 2 };
-                const userLevel = subscriptionLevels[user.subscriptionType || 'gratuit'];
-                const requiredLevel = subscriptionLevels[options.subscription];
-                
-                if (userLevel < requiredLevel) {
-                    return sendError(res, 403, 'Abonnement insuffisant');
-                }
-            }
-
-            // Vérifier la propriété de la ressource
-            if (options.ownership) {
-                const resourceId = (req as any).params[options.ownership];
-                if (resourceId && (user as any)._id.toString() !== resourceId && user.role !== 'admin') {
-                    return sendError(res, 403, 'Accès refusé - ressource non autorisée');
-                }
-            }
-
-            // Ajouter l'utilisateur à la requête
-            (req as AuthenticatedRequest).user = user;
-
-            logger.debug(`Authentification réussie`, {
-                userId: (user as any)._id,
-                email: user.email,
-                role: user.role
-            });
-
-            next();
-
-        } catch (error) {
-            logger.error('Erreur dans le middleware d\'authentification:', error);
-            sendError(res, 500, 'Erreur interne du serveur');
-        }
-    };
-};
-
-/**
- * Raccourcis pour les cas d'usage courants
- */
-export const authRequired = () => auth({});
-export const authOptional = () => auth({ optional: true });
-export const adminOnly = () => auth({ roles: ['admin'] });
-export const userOnly = () => auth({ roles: ['particulier', 'entreprise'] });
-export const premiumOnly = () => auth({ subscription: 'premium' });
-
-// Ajouter les exports manquants pour la compatibilité
-export const authenticateToken = authRequired;
-export const optionalAuth = authOptional;
-export const requireRole = (allowedRoles: string[]) => auth({ roles: allowedRoles });
-
-/**
- * Fonctions utilitaires pour l'authentification
- */
-function getTokenFromRequest(req: Request): string | null {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return null;
+// Middleware d'authentification
+export const requireAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const token = getTokenFromRequest(req);
+    
+    if (!token) {
+      res.status(401).json(createErrorResponse(ErrorType.AUTH_ERROR, 'Token requis'));
+      return;
     }
-    return authHeader.substring(7);
-}
 
-function sendError(res: Response, status: number, message: string): void {
-    res.status(status).json({
-        success: false,
-        error: {
-            message,
-            statusCode: status
-        }
-    });
-}
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const user = await UserModel.findById(payload.userId).select('-password');
+    
+    if (!user) {
+      res.status(401).json(createErrorResponse(ErrorType.AUTH_ERROR, 'Utilisateur introuvable'));
+      return;
+    }
 
-export default {
-    auth,
-    authRequired,
-    authOptional,
-    adminOnly,
-    userOnly,
-    premiumOnly,
-    authenticateToken,
-    optionalAuth,
-    requireRole
+    // Assigner directement le UserDocument
+    (req as AuthenticatedRequest).user = user;
+    next();
+
+  } catch (error) {
+    res.status(401).json(createErrorResponse(ErrorType.AUTH_ERROR, 'Token invalide'));
+  }
 };
+
+// Middleware pour admin seulement
+export const requireAdmin = (req: Request, res: Response, next: NextFunction): void => {
+  const user = (req as AuthenticatedRequest).user;
+  
+  if (!user || user.role !== 'admin') {
+    res.status(403).json(createErrorResponse(ErrorType.FORBIDDEN, 'Accès admin requis'));
+    return;
+  }
+  
+  next();
+};
+
+// Fonction utilitaire
+function getTokenFromRequest(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  return authHeader.substring(7);
+}

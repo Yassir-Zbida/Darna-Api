@@ -14,6 +14,7 @@ import databaseConfig from './config/database';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
+import propertyRoutes from './routes/propertyRoutes';
 
 
 class DarnaApp {
@@ -74,14 +75,14 @@ class DarnaApp {
         environment: process.env.NODE_ENV || 'development',
         database: {
           status: dbStatus,
-          ...(dbInfo && { info: dbInfo })
+          info: dbInfo
         }
       });
     });
 
     // API routes
     this.app.use('/api/auth', authRoutes);
-    // this.app.use('/api/properties', propertyRoutes);
+    // this.app.use('/api/properties', propertyRoutes); // Temporairement commenté pour tester l'auth
     // this.app.use('/api/users', userRoutes);
 
 
@@ -122,9 +123,9 @@ class DarnaApp {
     try {
       const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/darna';
       await databaseConfig.connect(mongoUri);
-      console.log('✅ Base de données MongoDB initialisée');
+      console.log('Base de données MongoDB initialisée');
     } catch (error) {
-      console.error('❌ Erreur lors de l\'initialisation de la base de données:', error);
+      console.error('Erreur lors de l\'initialisation de la base de données:', error);
       throw error;
     }
   }
@@ -136,12 +137,12 @@ class DarnaApp {
       
       // Démarrage du serveur
       this.app.listen(this.port, () => {
-        console.log(`🚀 Darna API server running on port ${this.port}`);
-        console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`Darna API server running on port ${this.port}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log(`🔗 Health check: http://localhost:${this.port}/health`);
       });
     } catch (error) {
-      console.error('❌ Erreur lors du démarrage de l\'application:', error);
+      console.error('Erreur lors du démarrage de l\'application:', error);
       process.exit(1);
     }
   }

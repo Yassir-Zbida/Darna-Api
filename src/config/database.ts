@@ -18,16 +18,17 @@ class DatabaseConfig {
       const defaultOptions = {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-        ...options
+        socketTimeoutMS: 45000
       };
+      
+      const finalOptions = Object.assign(defaultOptions, options);
 
-      this.connection = await mongoose.connect(uri, defaultOptions);
+      this.connection = await mongoose.connect(uri, finalOptions);
       this.isConnected = true;
 
-      logger.info('✅ Connexion à MongoDB établie avec succès');
-      logger.info(`📊 Base de données: ${this.connection.connection.name}`);
-      logger.info(`🌐 Host: ${this.connection.connection.host}:${this.connection.connection.port}`);
+      logger.info('Connexion à MongoDB établie avec succès');
+      logger.info(`Base de données: ${this.connection.connection.name}`);
+      logger.info(`Host: ${this.connection.connection.host}:${this.connection.connection.port}`);
 
       // Gestion des événements de connexion
       this.setupEventHandlers();
@@ -35,7 +36,7 @@ class DatabaseConfig {
       return this.connection;
     } catch (error) {
       this.isConnected = false;
-      logger.error('❌ Erreur lors de la connexion à MongoDB:', error);
+      logger.error('Erreur lors de la connexion à MongoDB:', error);
       throw error;
     }
   }
@@ -49,13 +50,13 @@ class DatabaseConfig {
 
     // Connexion établie
     mongoose.connection.on('connected', () => {
-      logger.info('🟢 MongoDB connecté');
+      logger.info('MongoDB connecté');
       this.isConnected = true;
     });
 
     // Connexion perdue
     mongoose.connection.on('disconnected', () => {
-      logger.warn('🟡 MongoDB déconnecté');
+      logger.warn('MongoDB déconnecté');
       this.isConnected = false;
     });
 
@@ -85,10 +86,10 @@ class DatabaseConfig {
       if (this.connection && this.isConnected) {
         await mongoose.connection.close();
         this.isConnected = false;
-        logger.info('🔌 Connexion MongoDB fermée');
+        logger.info('Connexion MongoDB fermée');
       }
     } catch (error) {
-      logger.error('❌ Erreur lors de la fermeture de MongoDB:', error);
+      logger.error('Erreur lors de la fermeture de MongoDB:', error);
       throw error;
     }
   }
@@ -132,10 +133,10 @@ class DatabaseConfig {
         throw new Error('Base de données non disponible');
       }
       await mongoose.connection.db.admin().ping();
-      logger.info('✅ Test de connexion MongoDB réussi');
+      logger.info('Test de connexion MongoDB réussi');
       return true;
     } catch (error) {
-      logger.error('❌ Test de connexion MongoDB échoué:', error);
+      logger.error('Test de connexion MongoDB échoué:', error);
       return false;
     }
   }
