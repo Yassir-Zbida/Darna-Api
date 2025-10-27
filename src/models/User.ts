@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
-import { IUser } from "./../types/auth";
+import { IUser } from "../types/auth";
 
 export interface UserDocument extends IUser, Document {}
 

@@ -1,42 +1,77 @@
 import { Router } from 'express';
-
 import { body } from 'express-validator';
 import AuthController from '../controllers/authController';
 import { userValidator } from '../validators/userValidator';
-import { authenticateToken } from '../middlewares/authMiddleware';
+import { 
+    auth, 
+    validate
+} from '../middlewares';
 
 const router = Router();
-const authController = new AuthController();
-
 
 // Route d'inscription
 router.post('/register', 
     userValidator.getValidationRules(),
-    authController.register
+    validate,
+    AuthController.register
 );
 
-// login
-router.post('/login', AuthController.login);
+// Route de connexion
+router.post('/login', 
+    [
+        body('email')
+            .isEmail()
+            .withMessage('Format d\'email invalide')
+            .normalizeEmail(),
+        body('password')
+            .notEmpty()
+            .withMessage('Le mot de passe est requis')
+    ],
+    validate,
+    AuthController.login
+);
 
-// Refresh access token
-router.post('/refresh-token', AuthController.refreshToken);
+// Route de rafraîchissement du token
+router.post('/refresh-token',
+    [
+        body('refreshToken')
+            .notEmpty()
+            .withMessage('Le refresh token est requis')
+    ],
+    validate,
+    AuthController.refreshToken
+);
 
-// logout (requires authentication)
-router.post('/logout', authenticateToken, AuthController.logout);
+// Route de déconnexion (nécessite authentification)
+router.post('/logout',
+    auth(),
+    AuthController.logout
+);
 
-// Get current user profile (requires authentication)
-router.get('/me', authenticateToken, AuthController.getProfile);
+// Route pour obtenir le profil utilisateur (nécessite authentification)
+router.get('/me',
+    auth(),
+    AuthController.getProfile
+);
 
-// Validate access token
-router.get('/validate', AuthController.validateToken);
+// Route pour valider un token
+router.get('/validate',
+    AuthController.validateToken
+);
 
-// Get active refresh tokens (requires authentication)
-router.get('/refresh-tokens', authenticateToken, AuthController.getRefreshTokens);
+// Route pour obtenir les tokens de rafraîchissement actifs (nécessite authentification)
+router.get('/refresh-tokens',
+    auth(),
+    AuthController.getRefreshTokens
+);
 
-// Revoke all refresh tokens (requires authentication)
-router.post('/revoke-all-tokens', authenticateToken, AuthController.revokeAllTokens);
+// Route pour révoquer tous les tokens (nécessite authentification)
+router.post('/revoke-all-tokens',
+    auth(),
+    AuthController.revokeAllTokens
+);
 
-// Email verification routes
+// Routes de vérification d'email (à ajouter depuis la version main)
 router.get('/verify-email/:token', AuthController.verifyEmail);
 router.post('/resend-verification', AuthController.resendVerification);
 
