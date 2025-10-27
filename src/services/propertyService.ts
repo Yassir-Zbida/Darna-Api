@@ -110,4 +110,47 @@ export class PropertyService {
       };
     }
   }
+
+  /**
+   * Mettre à jour une propriété
+   */
+  static async updateProperty(id: string, data: UpdatePropertyData, userId: string): Promise<PropertyResponse> {
+    try {
+      const property = await Property.findById(id);
+      
+      if (!property) {
+        return {
+          success: false,
+          message: 'Propriété introuvable'
+        };
+      }
+
+      // Vérifier que l'utilisateur est le propriétaire
+      if (property.ownerId.toString() !== userId) {
+        return {
+          success: false,
+          message: 'Vous n\'êtes pas autorisé à modifier cette propriété'
+        };
+      }
+
+      Object.assign(property, data);
+      await property.save();
+
+      logger.info(`Propriété mise à jour`, { propertyId: id, userId });
+
+      return {
+        success: true,
+        message: 'Propriété mise à jour avec succès',
+        property: property.toObject()
+      };
+    } catch (error) {
+      logger.error('Erreur lors de la mise à jour de la propriété:', error);
+      return {
+        success: false,
+        message: 'Erreur lors de la mise à jour de la propriété'
+      };
+    }
+  }
+
+  
 }
