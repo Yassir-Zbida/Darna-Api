@@ -101,4 +101,40 @@ export class PropertyController {
       });
     }
   }
+
+    /**
+   * Mettre à jour une propriété
+   * PUT /api/properties/:id
+   */
+  static async updateProperty(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user?._id;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentification requise'
+        });
+        return;
+      }
+
+      const updateData: UpdatePropertyData = req.body;
+      const result = await PropertyService.updateProperty(id as string, updateData, userId);
+      
+      if (result.success) {
+        res.status(200).json(result);
+      } else {
+        const statusCode = result.message.includes('introuvable') ? 404 : 
+                          result.message.includes('autorisé') ? 403 : 400;
+        res.status(statusCode).json(result);
+      }
+    } catch (error) {
+      logger.error('Erreur dans le contrôleur updateProperty:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur interne du serveur'
+      });
+    }
+  }
 }
