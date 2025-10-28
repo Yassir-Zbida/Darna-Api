@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { PropertyService } from '../services/propertyService';
 import { CreatePropertyData, UpdatePropertyData, PropertySearchFilters } from '../types/property';
 import logger from '../utils/logger';
-import { UserDocument } from '../models/User';
+import { AuthenticatedRequest } from '../types/auth';
+import { Types } from 'mongoose';
 
 export class PropertyController {
 
@@ -10,7 +11,7 @@ export class PropertyController {
    * Créer une nouvelle propriété
    * POST /api/properties
    */
-  static async createProperty(req: Request & { user: UserDocument }, res: Response): Promise<void> {
+  static async createProperty(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?._id;
 
@@ -23,7 +24,19 @@ export class PropertyController {
       }
 
       const propertyData: CreatePropertyData = {
-        ...req.body,
+        title: req.body.title,
+        description: req.body.description,
+        propertyType: req.body.propertyType,
+        transactionType: req.body.transactionType,
+        price: req.body.price,
+        pricePerDay: req.body.pricePerDay,
+        currency: req.body.currency,
+        location: req.body.location,
+        features: req.body.features,
+        rules: req.body.rules,
+        availability: req.body.availability,
+        images: req.body.images,
+        videos: req.body.videos,
         ownerId: userId
       };
 
@@ -106,10 +119,10 @@ export class PropertyController {
    * Mettre à jour une propriété
    * PUT /api/properties/:id
    */
-  static async updateProperty(req: Request, res: Response): Promise<void> {
+  static async updateProperty(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?._id;
+      const userId = req.user?._id;
       
       if (!userId) {
         res.status(401).json({
@@ -120,7 +133,7 @@ export class PropertyController {
       }
 
       const updateData: UpdatePropertyData = req.body;
-      const result = await PropertyService.updateProperty(id as string, updateData, userId);
+      const result = await PropertyService.updateProperty(id as string, updateData, userId.toString());
       
       if (result.success) {
         res.status(200).json(result);
