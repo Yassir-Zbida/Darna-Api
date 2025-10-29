@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/User';
 import { AuthRequest, AuthResponse, User, JwtPayload } from '../types/auth';
 import { ErrorType, createErrorResponse } from '../types/errors';
+import logger from '../utils/logger';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -14,7 +15,7 @@ export class AuthService {
   // Inscription
   static async register(userData: AuthRequest): Promise<AuthResponse> {
     try {
-      const { email, password, name } = userData;
+      const { email, password, name, role, phone } = userData;
 
       // Vérifier si l'utilisateur existe déjà
       const existingUser = await UserModel.findOne({ email });
@@ -33,7 +34,8 @@ export class AuthService {
         email,
         password: hashedPassword,
         name,
-        role: 'user'
+        role: role || 'visiteur',
+        phone: phone || undefined
       });
 
       await user.save();
@@ -63,7 +65,12 @@ export class AuthService {
         }
       };
 
-    } catch (error) {
+    } catch (error: any) {
+      logger.error('Erreur lors de la création du compte', { 
+        error: error.message,
+        stack: error.stack,
+        email: userData.email 
+      });
       return {
         success: false,
         message: 'Erreur lors de la création du compte'

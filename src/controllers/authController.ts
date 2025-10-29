@@ -9,14 +9,14 @@ export class AuthController {
   // Inscription
   static async register(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password, name } = req.body;
+      const { email, password, name, phone, role } = req.body;
       
       if (!email || !password || !name) {
         res.status(400).json(createErrorResponse(ErrorType.VALIDATION_ERROR, 'Email, mot de passe et nom requis'));
         return;
       }
 
-      const result = await AuthService.register({ email, password, name });
+      const result = await AuthService.register({ email, password, name, phone, role });
       
       if (result.success) {
         res.status(201).json(result);
