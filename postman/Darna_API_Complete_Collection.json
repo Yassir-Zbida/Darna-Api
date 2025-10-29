@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "darna-api-complete",
 		"name": "Darna API - Complete Collection",
-		"description": "Complete collection for Darna API with all available endpoints including authentication, email verification, and system endpoints",
+		"description": "Complete collection for Darna API with all available endpoints including authentication, 2FA, email verification, and system endpoints",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -91,7 +91,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123\"\n}"
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123\",\n  \"twoFactorToken\": \"123456\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/auth/login",
@@ -104,7 +104,7 @@
 								"login"
 							]
 						},
-						"description": "Login with user credentials"
+						"description": "Login with user credentials. If 2FA is enabled, include twoFactorToken in the request body."
 					},
 					"response": []
 				},
@@ -275,6 +275,138 @@
 							]
 						},
 						"description": "Revoke all refresh tokens for current user"
+					},
+					"response": []
+				},
+				{
+					"name": "Setup 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/2fa/setup",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"2fa",
+								"setup"
+							]
+						},
+						"description": "Setup 2FA for user. Returns QR code and secret key. Scan QR code with authenticator app."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify and Enable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/2fa/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"2fa",
+								"verify"
+							]
+						},
+						"description": "Verify 2FA code and enable 2FA. Returns recovery codes - save them securely!"
+					},
+					"response": []
+				},
+				{
+					"name": "Disable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/2fa/disable",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"2fa",
+								"disable"
+							]
+						},
+						"description": "Disable 2FA for user. Requires authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Recovery Code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"recoveryCode\": \"ABC12345\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/2fa/recovery",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"2fa",
+								"recovery"
+							]
+						},
+						"description": "Verify recovery code to bypass 2FA. Use when you lost access to your authenticator app."
 					},
 					"response": []
 				}
