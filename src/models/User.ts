@@ -13,6 +13,8 @@ export interface UserDocument extends Document {
   companyName?: string;
   isKYCVerified?: boolean;
   twoFactorEnabled?: boolean;
+  twoFactorSecret?: string | null;
+  twoFactorRecoveryCodes?: string[] | null;
   lastLogin?: Date;
   isActive: boolean;
   companyInfo?: {
@@ -73,6 +75,14 @@ const userSchema = new Schema<UserDocument>({
     type: Boolean,
     default: false
   },
+  twoFactorSecret: {
+    type: String,
+    trim: true
+  },
+  twoFactorRecoveryCodes: [{
+    type: String,
+    trim: true
+  }],
   lastLogin: Date,
   isActive: {
     type: Boolean,

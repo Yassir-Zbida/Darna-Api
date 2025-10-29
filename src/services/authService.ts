@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/User';
+import { TwoFactorService } from './twoFactorService';
 import { AuthRequest, AuthResponse, User, JwtPayload } from '../types/auth';
 import { ErrorType, createErrorResponse } from '../types/errors';
 
@@ -33,7 +34,10 @@ export class AuthService {
         email,
         password: hashedPassword,
         name,
-        role: 'user'
+        role: userData.role || 'visiteur',
+        phone: userData.phone,
+        companyName: userData.companyName,
+        companyInfo: userData.companyInfo
       });
 
       await user.save();
@@ -63,16 +67,17 @@ export class AuthService {
         }
       };
 
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
       return {
         success: false,
-        message: 'Erreur lors de la création du compte'
+        message: error.message || 'Erreur lors de la création du compte'
       };
     }
   }
 
   // Connexion
-  static async login(email: string, password: string): Promise<AuthResponse> {
+  static async login(email: string, password: string, twoFactorToken?: string): Promise<AuthResponse> {
     try {
       // Trouver l'utilisateur
       const user = await UserModel.findOne({ email });
@@ -99,6 +104,30 @@ export class AuthService {
           message: 'Compte désactivé'
         };
       }
+
+      // Si 2FA est activé, vérifier le token 2FA
+      if (user.twoFactorEnabled) {
+        if (!twoFactorToken) {
+          return {
+            success: false,
+            message: 'Code 2FA requis',
+            requires2FA: true
+          };
+        }
+
+        const twoFactorResult = await TwoFactorService.verify2FA(user._id.toString(), twoFactorToken);
+        if (!twoFactorResult.success) {
+          return {
+            success: false,
+            message: twoFactorResult.message,
+            requires2FA: true
+          };
+        }
+      }
+
+      // Mettre à jour la dernière connexion
+      user.lastLogin = new Date();
+      await user.save();
 
       // Générer le token
       const token = this.generateToken(user._id.toString(), email, user.role);
@@ -166,7 +195,7 @@ export class AuthService {
   }
 
   // Générer un token JWT
-  private static generateToken(userId: string, email: string, role: string): string {
+  static generateToken(userId: string, email: string, role: string): string {
     return jwt.sign(
       { userId, email, role },
       JWT_SECRET,

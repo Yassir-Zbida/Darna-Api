@@ -42,6 +42,7 @@ export interface AuthResponse {
   message: string;
   token?: string;
   user?: User;
+  requires2FA?: boolean;
 }
 
 // Payload JWT
