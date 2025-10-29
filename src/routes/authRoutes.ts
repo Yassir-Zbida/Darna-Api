@@ -28,4 +28,34 @@ router.get('/profile',
   AuthController.getProfile
 );
 
+// Routes 2FA
+// Configuration 2FA
+router.post('/2fa/setup',
+  requireAuth,
+  AuthController.setup2FA
+);
+
+// Vérification et activation 2FA
+router.post('/2fa/verify',
+  requireAuth,
+  AuthController.verify2FA
+);
+
+// Désactivation 2FA
+router.post('/2fa/disable',
+  requireAuth,
+  AuthController.disable2FA
+);
+
+// Vérification code de récupération 2FA
+router.post('/2fa/recovery',
+  AuthController.verifyRecoveryCode
+);
+
+// Debug 2FA (pour le développement)
+router.get('/2fa/debug',
+  requireAuth,
+  AuthController.debug2FA
+);
+
 export default router;
