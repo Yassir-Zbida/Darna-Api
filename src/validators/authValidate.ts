@@ -2,7 +2,7 @@ import { body } from 'express-validator';
 
 const REGEX_PATTERNS = {
   PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
-  PHONE_MA: /^(?:(?:\+212[567])|0[567])\d{8}$/,
+  PHONE_MA: /^(?:0[567])\d{8}$/,
   SIRET: /^\d{14}$/,
   NAME: /^[a-zA-ZÀ-ÿ\s'-]{2,50}$/,
   EMAIL_STRICT: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
